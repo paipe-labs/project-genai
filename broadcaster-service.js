@@ -1,4 +1,5 @@
 import express from 'express'
+import bodyParser from 'body-parser'
 import { WebSocketServer } from 'ws'
 import { uuid } from 'uuidv4'
 import cors from 'cors'
@@ -6,6 +7,10 @@ const connections = []
 const app = express()
 app.options('*', cors())
 app.use(cors())
+
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.json())
+
 const wss = new WebSocketServer({ port: 8080 })
 
 wss.on('connection', ws => {
