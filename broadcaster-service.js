@@ -4,7 +4,7 @@ import { uuid } from 'uuidv4'
 import cors from 'cors'
 const connections = []
 const app = express()
-
+app.options('*', cors())
 app.use(cors())
 const wss = new WebSocketServer({ port: 8080 })
 
