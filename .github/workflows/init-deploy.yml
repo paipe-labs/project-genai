@@ -27,4 +27,4 @@ jobs:
     # next line is only for projects that require builds, like React 
     # - run: CI=false npm run build
     # Deploy
-    - run: rsync -e "ssh -i $HOME/.ssh/key -o StrictHostKeyChecking=no" --omit-dir-times --no-perms --archive --compress . root@78.47.190.250:/broadcaster-service
+    - run: rsync -e "ssh -i $HOME/.ssh/key -o StrictHostKeyChecking=no" --omit-dir-times --no-perms --archive --compress . root@78.47.190.250:/root/broadcaster-service
