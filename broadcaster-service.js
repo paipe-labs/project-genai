@@ -40,38 +40,8 @@ wss.on('connection', ws => {
   })
 })
 
-// this is for demo purposes;
-// app.get('/v1/images/demo', async (req, res) => {
-//   // const { prompt, model, image_url, size } = req.body;
-
-//   const prompt = 'Some random text';
-//   const model = 'SD-1.5';
-//   const size = '512X512';
-//   if (prompt === undefined || prompt === null) {
-//     return res.json({ ok: false, error: 'prompt cannot be null or undefined' });
-//   }
-//   if (prompt.length === 0) {
-//     return res.json({ ok: false, error: 'prompt length cannot be 0' });
-//   }
-
-//   const request_id = uuid();
-//   const randomConnection = connections[Math.floor(Math.random() * connections.length)];
-//   const task = {
-//     request_id: request_id,
-//     prompt,
-//     model,
-//     size,
-//   };
-
-//   randomConnection.send(JSON.stringify(task));
-
-//   res.send({ ok: true });
-// });
-
-// app.post('/v1/images/edits/', async (req, res) => {})
-
-app.post('/v1/ping', async (req, res) => {
-  return res.json({ ok: true, message: 'Service is online' })
+app.post('/v1/client/hello', async (req, res) => {
+  return res.json({ ok: true, url: 'ws://genai.edenvr.link/ws' })
 })
 
 app.post('/v1/images/generation/', async (req, res) => {
@@ -102,7 +72,8 @@ app.post('/v1/images/generation/', async (req, res) => {
 
 // Start the server
 const server = app.listen(4040, () => {
-  console.log('Server started on port 4040')
+  console.log('HTTP started on port 4040')
+  console.log('WS started on port 8080')
 })
 
 // Handle errors that occur during the startup process
