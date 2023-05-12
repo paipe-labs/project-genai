@@ -1,9 +1,10 @@
 import express from 'express'
 import bodyParser from 'body-parser'
-import { WebSocketServer } from 'ws'
+import { WebSocket, WebSocketServer } from 'ws'
 import { uuid } from 'uuidv4'
 import cors from 'cors'
-const connections = []
+
+const connections: WebSocket[] = [];
 const app = express()
 app.options('*', cors())
 app.use(cors())
@@ -11,9 +12,17 @@ app.use(cors())
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 
+
+interface Task {
+  request_id: string;
+  prompt: string;
+  model: string;
+  size: number;
+}
+
 const wss = new WebSocketServer({ port: 8080 })
 
-wss.on('connection', ws => {
+wss.on('connection', (ws: WebSocket) => {
   console.log('Node connected')
   connections.push(ws)
   ws.on('close', () => {
@@ -23,7 +32,7 @@ wss.on('connection', ws => {
     }
   })
 
-  ws.on('message', async message => {
+  ws.on('message', async (message: string) => {
     const data = JSON.parse(message)
     const { type, request_id } = data
     if (type === 'status') {
@@ -55,7 +64,7 @@ app.post('/v1/client/hello', async (req, res) => {
 app.post('/v1/images/generation/', async (req, res) => {
   const { prompt, model, image_url, size } = req.body
 
-  if (prompt === undefined || prompt === null) {
+  if (!prompt) {
     return res.json({ ok: false, error: 'prompt cannot be null or undefined' })
   }
   if (prompt.length === 0) {
@@ -68,14 +77,14 @@ app.post('/v1/images/generation/', async (req, res) => {
   }
   const randomConnection =
     connections[Math.floor(Math.random() * connections.length)]
-  const task = {
-    request_id: request_id,
+  const task: Task = {
+    request_id,
     prompt,
     model,
     size
   }
   randomConnection.send(JSON.stringify(task))
-  res.json({ ok: true, task_id: request_id })
+  res.json({ ok: true, task_id: task.request_id })
 })
 
 // Start the server
