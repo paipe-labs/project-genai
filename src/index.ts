@@ -1,11 +1,12 @@
 import 'dotenv/config'
 
 import express from 'express'
+import { createServer } from 'http'
 import bodyParser from 'body-parser'
-import { WebSocket, WebSocketServer } from 'ws'
+import { WebSocket } from 'ws'
 import { uuid } from 'uuidv4'
 import cors from 'cors'
-import { HTTP_PORT, WS_PORT } from 'constants/env'
+import { HTTP_PORT } from 'constants/env'
 import { verify } from 'verification'
 
 const connections: WebSocket[] = [];
@@ -24,7 +25,10 @@ interface Task {
   size: number;
 }
 
-const wss = new WebSocketServer({ port: WS_PORT })
+// Create http server
+const server = createServer(app)
+
+const wss = new WebSocket.Server({ server })
 
 wss.on('connection', (ws: WebSocket) => {
   console.log('Node connected')
@@ -62,7 +66,7 @@ wss.on('connection', (ws: WebSocket) => {
 })
 
 app.post('/v1/client/hello', async (req, res) => {
-  return res.json({ ok: true, url: 'ws://genai.eu-west-1.elasticbeanstalk.com:8080' })
+  return res.json({ ok: true, url: 'ws://orca-app-feq22.ondigitalocean.app/' })
 })
 
 app.post('/v1/images/generation/', async (req, res) => {
@@ -96,10 +100,9 @@ app.post('/v1/images/generation/', async (req, res) => {
 })
 
 // Start the server
-const server = app.listen(HTTP_PORT, () => {
-  console.log(`HTTP started on port ${HTTP_PORT}`)
-  console.log(`WS started on port ${WS_PORT}`)
-})
+server.listen(HTTP_PORT, () => {
+  console.log(`HTTP ans WS started on port ${HTTP_PORT}`)
+});
 
 // Handle errors that occur during the startup process
 server.on('error', error => {
