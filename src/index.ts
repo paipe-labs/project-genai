@@ -62,7 +62,7 @@ wss.on('connection', (ws: WebSocket) => {
 })
 
 app.post('/v1/client/hello', async (req, res) => {
-  return res.json({ ok: true, url: 'ws://genai.edenvr.link/ws' })
+  return res.json({ ok: true, url: 'ws://genai.eu-west-1.elasticbeanstalk.com:8080' })
 })
 
 app.post('/v1/images/generation/', async (req, res) => {
