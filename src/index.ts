@@ -31,8 +31,9 @@ const server = createServer(app)
 const wss = new WebSocket.Server({ server })
 
 wss.on('connection', (ws: WebSocket) => {
-  console.log('Node connected')
+  console.log('Node connected', 'Total nodes:', connections.length);
   connections.push(ws)
+
   ws.on('close', () => {
     const index = connections.indexOf(ws)
     if (index !== -1) {
@@ -66,7 +67,7 @@ wss.on('connection', (ws: WebSocket) => {
 })
 
 app.post('/v1/client/hello', async (req, res) => {
-  return res.json({ ok: true, url: 'ws://orca-app-feq22.ondigitalocean.app/' })
+  return res.json({ ok: true, url: 'ws://orca-app-feq22.ondigitalocean.app/'})
 })
 
 app.post('/v1/images/generation/', async (req, res) => {
