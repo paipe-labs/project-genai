@@ -1,8 +1,12 @@
+import 'dotenv/config'
+
 import express from 'express'
 import bodyParser from 'body-parser'
 import { WebSocket, WebSocketServer } from 'ws'
 import { uuid } from 'uuidv4'
 import cors from 'cors'
+import { HTTP_PORT, WS_PORT } from 'constants/env'
+import { verify } from 'verification'
 
 const connections: WebSocket[] = [];
 const app = express()
@@ -20,7 +24,7 @@ interface Task {
   size: number;
 }
 
-const wss = new WebSocketServer({ port: 8080 })
+const wss = new WebSocketServer({ port: WS_PORT })
 
 wss.on('connection', (ws: WebSocket) => {
   console.log('Node connected')
@@ -62,7 +66,11 @@ app.post('/v1/client/hello', async (req, res) => {
 })
 
 app.post('/v1/images/generation/', async (req, res) => {
-  const { prompt, model, image_url, size } = req.body
+  const { prompt, model, image_url, size, token } = req.body
+
+  if (!verify(token)) {
+    return res.json({ ok: false, error: 'operation is not permitted' })
+  }
 
   if (!prompt) {
     return res.json({ ok: false, error: 'prompt cannot be null or undefined' })
@@ -88,9 +96,9 @@ app.post('/v1/images/generation/', async (req, res) => {
 })
 
 // Start the server
-const server = app.listen(4040, () => {
-  console.log('HTTP started on port 4040')
-  console.log('WS started on port 8080')
+const server = app.listen(HTTP_PORT, () => {
+  console.log(`HTTP started on port ${HTTP_PORT}`)
+  console.log(`WS started on port ${WS_PORT}`)
 })
 
 // Handle errors that occur during the startup process
