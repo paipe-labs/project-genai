@@ -2,11 +2,11 @@
   "name": "genai-broadcaster",
   "version": "1.0.0",
   "description": "",
-  "main": "./src",
+  "main": "./public",
   "scripts": {
     "start": "cross-env NODE_ENV=production ts-node --files -r tsconfig-paths/register ./src",
     "watch": "cross-env ts-node-dev --files --respawn --inspect -r tsconfig-paths/register ./src",
-    "build": "npm run rm:public && cross-env NODE_ENV=production tsc && tsc-alias && npm run copy:files",
+    "build": "npm run rm:public && cross-env NODE_ENV=production tsc && tsc-alias",
     "start:prod": "npm run build && node ./public",
     "rm:public": "rm -rf ./public",
     "copy:files": "cp .env ./public/.env",
