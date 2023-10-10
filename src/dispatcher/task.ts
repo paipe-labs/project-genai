@@ -1,5 +1,5 @@
-import { TaskInfo, TaskResult } from "./protocol/task";
-import { NOOP } from "./utils/noop";
+import { TaskInfo, TaskResult } from './protocol/task';
+import { NOOP } from './utils/noop';
 
 export enum TaskStatus {
   Initial,
@@ -12,11 +12,11 @@ export enum TaskStatus {
   FailedByProvider,
   Aborted,
   Completed,
-  Timeout,
+  Timeout
 }
 
 export type TaskStatusPayload = {
-  [TaskStatus.SetToProvider]: [{ providerId: string }];
+  [TaskStatus.SetToProvider]: [{ providerId: string, minScore: number, waitingTime: number}];
   [TaskStatus.SentFailed]: [{ attempt: number }];
   [TaskStatus.FailedByProvider]: [{ reason?: string }];
 } & {
@@ -32,7 +32,7 @@ export class Task {
 
   readonly status: TaskStatus = TaskStatus.Initial;
 
-  private log: string[] = [];
+  private log: [Date, TaskStatus, TaskStatusPayload[TaskStatus]][] = [];
 
   constructor(readonly task_info: TaskInfo) {}
 
@@ -76,11 +76,20 @@ export class Task {
     // TODO:
     // We can add any profiling logic here, to analyze life cycle of a task
 
-    this.log.push(`[${new Date().toISOString()}] ${event}: ${payload.join(", ")}`);
+    this.log.push([new Date(), event, payload]);
   }
 
-  getLog(): string[] {
+  getLog(): typeof this.log {
     return this.log;
+  }
+
+  getLogString(): string {
+    return this.log.map(
+      entry =>
+        `[${entry[0].toISOString()}] ${TaskStatus[entry[1]]}: ${entry[2]
+          .map(v => JSON.stringify(v))
+          .join(', ')}`
+    ).join('\n');
   }
 
   setProviderId(providerId: string): void {

@@ -94,7 +94,6 @@ export class Provider {
 
   scheduleTask(task: Task): void {
     task.setProviderId(this.id);
-    task.setStatus(TaskStatus.SetToProvider, { providerId: this.id });
     this.estimator.addTask(task);
     this.asyncScheduleTask(task);
   }
