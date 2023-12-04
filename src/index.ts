@@ -2,17 +2,19 @@ import 'dotenv/config';
 
 import express from 'express';
 import bodyParser from 'body-parser';
-import { WebSocket, WebSocketServer } from 'ws';
+import { WebSocket } from 'ws';
+import { createServer } from 'http';
 import cors from 'cors';
-import { HTTP_PORT, WS_PORT } from 'constants/env';
+import { HTTP_WS_PORT } from 'constants/env';
 import { verify } from 'verification';
 import { Provider } from 'dispatcher/provider';
-import { PrivateMetaInfo } from 'dispatcher/protocol/meta';
+import { PrivateMetaInfo, PublicMetaInfoV1 } from 'dispatcher/protocol/meta';
 import { EntryQueue } from 'dispatcher/entry-queue';
 import { Dispatcher } from 'dispatcher/dispatcher';
 import { Task, TaskStatus } from 'dispatcher/task';
 import { WSConenction } from 'ws-connection';
-import { TaskResult } from 'dispatcher/protocol/task';
+import { TaskResult, TaskResultClient } from 'dispatcher/protocol/task';
+import { v4 as uuid } from 'uuid';
 
 // Entry example
 const entryQueue = new EntryQueue();
@@ -26,7 +28,9 @@ app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-const wss = new WebSocketServer({ port: WS_PORT });
+const server = createServer(app);
+
+const wss = new WebSocket.Server({ server });
 
 const registeredProviders = new WeakMap<WebSocket, string>();
 
@@ -50,14 +54,18 @@ wss.on('connection', (ws: WebSocket) => {
 
   ws.on('message', async (message: string) => {
     const data = JSON.parse(message);
-    const { type, request_id } = data;
+    const { type } = data;
 
     switch (type) {
       case 'register': {
-        const { id, public_meta } = data;
+        const { node_id } = data;
+        const public_meta: PublicMetaInfoV1 = {
+          _v: 1,
+          min_cost: 10,
+        };
 
-        if (dispatcher.providersMap.has(id)) {
-          const existingProvider = dispatcher.providersMap.get(id)!;
+        if (dispatcher.providersMap.has(node_id)) {
+          const existingProvider = dispatcher.providersMap.get(node_id)!;
           existingProvider.updatePublicMeta(public_meta);
           existingProvider.network_connection.onConnectionRestored();
         }
@@ -66,52 +74,40 @@ wss.on('connection', (ws: WebSocket) => {
         const private_meta: PrivateMetaInfo = { _v: 1 };
         const network_connection = new WSConenction(ws);
         const provider = new Provider(
-          id,
+          node_id,
           public_meta,
           private_meta,
           network_connection
         );
+        console.log('Provider created', node_id )
         dispatcher.addProvider(provider);
 
-        registeredProviders.set(ws, id);
+        registeredProviders.set(ws, node_id);
         break;
       }
 
       case 'result': {
-        const {task_id, result} = data;
+        const { taskId, resultsUrl} = data as TaskResultClient;
 
         const provider = dispatcher.providersMap.get(registeredProviders.get(ws)!);
         if (provider) {
-          const task = tasks.get(task_id);
+          const task = tasks.get(taskId);
           if (task) {
-            provider.network_connection.onTaskCompleted(task, result);
+            const taskResult: TaskResult = {
+              image: resultsUrl[0],
+              _v: 1,
+            };
+            provider.network_connection.onTaskCompleted(task, taskResult);
           }
         } else {
           // TODO: restore connection
         }
         break;
       }
-    }
+      case 'status': {
+        const { status } = data;
 
-    // TODO: Remove
-    if (type === 'status') {
-      const { status } = data;
-      if (status === 'ready') {
-        // can process request_id
       }
-      if (status === 'busy') {
-        // cannot process request_id
-      }
-    }
-    if (type === 'result') {
-      const { result_url } = data;
-      // result for { request_id };
-    }
-    if (type === 'error') {
-      // failure for { request_id }
-    }
-    if (type === 'greetings') {
-      console.log(data.node_id);
     }
   });
 });
@@ -121,7 +117,7 @@ app.post('/v1/client/hello', async (req, res) => {
 });
 
 app.post('/v1/images/generation/', async (req, res) => {
-  const { prompt, model, image_url, size, token, task_id } = req.body;
+  const { prompt, model, image_url, size, steps, token } = req.body;
 
   if (!verify(token)) {
     return res.json({ ok: false, error: 'operation is not permitted' });
@@ -133,9 +129,9 @@ app.post('/v1/images/generation/', async (req, res) => {
   if (prompt.length === 0) {
     return res.json({ ok: false, error: 'prompt length cannot be 0' });
   }
-
   // TODO:
-  const task = new Task();
+  const task_id = uuid();
+  const task = new Task({_v: 1, id: task_id, max_price: 15, time_to_money_ratio: 1, task_options: { prompt, model, size, steps}});
   tasks.set(task_id, task);
 
   task.onFailed = () => {
@@ -145,15 +141,16 @@ app.post('/v1/images/generation/', async (req, res) => {
   }
   task.onCompleted = (result: TaskResult) => {
     // TODO: Process result
+
+    res.json({ ok: true, result: result });
   }
 
-  entryQueue.addTask(task, Date.now());
+  entryQueue.addTask(task, 0);
 });
 
 // Start the server
-const server = app.listen(HTTP_PORT, () => {
-  console.log(`HTTP started on port ${HTTP_PORT}`);
-  console.log(`WS started on port ${WS_PORT}`);
+server.listen(HTTP_WS_PORT, () => {
+  console.log(`HTTP and WS started on port ${HTTP_WS_PORT}`);
 });
 
 // Handle errors that occur during the startup process

@@ -1,4 +1,4 @@
-import { TaskInfo, TaskResult } from './protocol/task';
+import { TaskInfo, TaskOptions, TaskResult } from './protocol/task';
 import { NOOP } from './utils/noop';
 
 export enum TaskStatus {
@@ -38,6 +38,10 @@ export class Task {
 
   get id(): string {
     return this.task_info.id;
+  }
+
+  getTaskOptions(): TaskOptions | undefined {
+    return this.task_info.task_options;
   }
 
   getMaxPrice(): number {

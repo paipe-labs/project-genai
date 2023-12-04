@@ -94,6 +94,7 @@ export class Provider {
 
   scheduleTask(task: Task): void {
     task.setProviderId(this.id);
+    console.log(`Task ${task.id} scheduled in provider ${this.id}`);
     this.estimator.addTask(task);
     this.asyncScheduleTask(task);
   }
