@@ -135,9 +135,8 @@ export class Dispatcher {
   }
 
   taskAddedCb(task: Task): void {
-    console.log('Task added dispatcher callback', task.id);
     if (task.getMaxPrice() < this.getMinCost()) {
-      console.log('Task rejected by dispatcher', task.id, task.getMaxPrice(), this.getMinCost());
+      console.log('Task rejected by dispatcher', task.id);
       task.setStatus(TaskStatus.RejectedByDispatcher);
       return;
     }
