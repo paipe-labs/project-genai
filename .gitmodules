@@ -1,0 +1,3 @@
+[submodule "project-genai-client"]
+	path = project-genai-client
+	url = git@github.com:GenAI-Network/project-genai-client.git
