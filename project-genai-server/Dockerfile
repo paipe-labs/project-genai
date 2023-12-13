@@ -3,11 +3,11 @@ FROM node:20-alpine3.18
 WORKDIR /genai-server
 
 COPY package.json .
-COPY package-lock.json .
+COPY yarn.lock .
 
-RUN npm install
+RUN yarn install
 COPY . .
 
-RUN npm run build
+RUN yarn build
 
 ENTRYPOINT [ "npx", "ts-node", "public/index.js" ]

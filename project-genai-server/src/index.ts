@@ -16,6 +16,8 @@ import { WSConenction } from 'ws-connection';
 import { TaskResult, TaskResultClient } from 'dispatcher/protocol/task';
 import { v4 as uuid } from 'uuid';
 
+import process from 'process';
+
 // Entry example
 const entryQueue = new EntryQueue();
 const dispatcher = new Dispatcher(entryQueue);
@@ -156,4 +158,18 @@ server.listen(HTTP_WS_PORT, () => {
 // Handle errors that occur during the startup process
 server.on('error', error => {
   console.error(error);
+});
+
+process.on('SIGINT', () => {
+  server.close(() => {
+    console.log('Server is gracefully shutting down');
+    process.exit(0);
+  });
+});
+
+process.on('SIGTERM', () => {
+  server.close(() => {
+    console.log('Server is gracefully shutting down');
+    process.exit(0);
+  });
 });
