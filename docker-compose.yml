@@ -1,0 +1,20 @@
+services:
+  server:
+    image: genai-server
+    build:
+      context: backend
+    ports:
+      - "8080:8080"
+    # TODO: pass self url as command line argument
+  
+  node:
+    image: genai-node
+    build:
+      context: client-node
+    # TODO: select inference server type with command line argument, run with 'test' here
+    # TODO: pass websocket url as command line argument
+
+  tests:
+    build:
+      context: tests
+    # TODO: implement one regress test and check that it works with 'docker compsoe up'
