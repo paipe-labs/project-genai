@@ -11,10 +11,13 @@ services:
     image: genai-node
     build:
       context: client-node
-    # TODO: select inference server type with command line argument, run with 'test' here
-    # TODO: pass websocket url as command line argument
+    depends_on:
+      - server
 
   tests:
     build:
       context: tests
+    depends_on:
+      - server
+      - node
     # TODO: implement one regress test and check that it works with 'docker compsoe up'

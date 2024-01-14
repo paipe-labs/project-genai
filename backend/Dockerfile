@@ -10,4 +10,4 @@ COPY . .
 
 RUN yarn build
 
-ENTRYPOINT [ "npx", "ts-node", "public/index.js" ]
+ENTRYPOINT [ "npx", "ts-node", "public/run.js" ]
