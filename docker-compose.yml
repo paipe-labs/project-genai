@@ -3,6 +3,7 @@ services:
     image: genai-server
     build:
       context: backend
+      dockerfile: backend.dockerfile
     ports:
       - "8080:8080"
     # TODO: pass self url as command line argument
@@ -11,13 +12,16 @@ services:
     image: genai-node
     build:
       context: client-node
+      dockerfile: client-node.dockerfile
     depends_on:
       - server
 
   tests:
     build:
       context: tests
+      dockerfile: tests.dockerfile
+    environment:
+      SERVER_URL: "http://server:8080"
     depends_on:
       - server
       - node
-    # TODO: implement one regress test and check that it works with 'docker compsoe up'

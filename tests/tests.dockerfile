@@ -1,0 +1,15 @@
+FROM python:3.9-alpine
+
+RUN apk add curl && \
+    apk add --no-cache gcc libressl-dev musl-dev libffi-dev && \
+    pip install --no-cache-dir cryptography==38.0.4 && \
+    apk del libressl-dev musl-dev libffi-dev
+
+WORKDIR /genai/tests
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY *.py .
+
+ENTRYPOINT ["sh", "-c", "while ! curl -s ${SERVER_URL} > /dev/null; do echo waiting for server; sleep 3; done; pytest -vs --log-level=INFO"]

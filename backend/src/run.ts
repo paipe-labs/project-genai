@@ -114,16 +114,17 @@ wss.on('connection', (ws: WebSocket) => {
   });
 });
 
-app.post('/v1/client/hello', async (req, res) => {
+app.post('/v1/client/hello/', async (req, res) => {
   return res.json({ ok: true, url: 'ws://genai.edenvr.link/ws' });
 });
 
 app.post('/v1/images/generation/', async (req, res) => {
   const { prompt, model, image_url, size, steps, token } = req.body;
 
-  if (!verify(token)) {
-    return res.json({ ok: false, error: 'operation is not permitted' });
-  }
+  // TODO: authentication service && proper jwt token check
+  // if (!verify(token)) {
+  //   return res.json({ ok: false, error: 'operation is not permitted' });
+  // }
 
   if (!prompt) {
     return res.json({ ok: false, error: 'prompt cannot be null or undefined' });
