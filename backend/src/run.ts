@@ -5,7 +5,7 @@ import bodyParser from 'body-parser';
 import { WebSocket } from 'ws';
 import { createServer } from 'http';
 import cors from 'cors';
-import { HTTP_WS_PORT } from 'constants/env';
+import { ENFORCE_JWT_AUTH, HTTP_WS_PORT } from 'constants/env';
 import { verify } from 'verification';
 import { Provider } from 'dispatcher/provider';
 import { PrivateMetaInfo, PublicMetaInfoV1 } from 'dispatcher/protocol/meta';
@@ -114,14 +114,14 @@ wss.on('connection', (ws: WebSocket) => {
   });
 });
 
-app.post('/v1/client/hello', async (req, res) => {
+app.post('/v1/client/hello/', async (req, res) => {
   return res.json({ ok: true, url: 'ws://genai.edenvr.link/ws' });
 });
 
 app.post('/v1/images/generation/', async (req, res) => {
   const { prompt, model, image_url, size, steps, token } = req.body;
 
-  if (!verify(token)) {
+  if (ENFORCE_JWT_AUTH && !verify(token)) {
     return res.json({ ok: false, error: 'operation is not permitted' });
   }
 

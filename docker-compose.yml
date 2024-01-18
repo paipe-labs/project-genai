@@ -1,0 +1,29 @@
+services:
+  server:
+    image: genai-server
+    build:
+      context: backend
+      dockerfile: backend.dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      ENFORCE_JWT_AUTH: false
+    # TODO: pass self url as command line argument
+
+  node:
+    image: genai-node
+    build:
+      context: client-node
+      dockerfile: client-node.dockerfile
+    depends_on:
+      - server
+
+  tests:
+    build:
+      context: tests
+      dockerfile: tests.dockerfile
+    environment:
+      SERVER_URL: "http://server:8080"
+    depends_on:
+      - server
+      - node
