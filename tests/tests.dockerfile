@@ -12,4 +12,4 @@ RUN pip install -r requirements.txt
 
 COPY *.py .
 
-ENTRYPOINT ["pytest -vs --log-level=INFO"]
+ENTRYPOINT ["sh", "-c", "pytest -vs --log-level=INFO"]

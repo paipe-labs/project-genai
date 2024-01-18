@@ -1,4 +1,4 @@
-import yn from 'yn'
+import yn from 'yn';
 
 export const tryParseInt = (str: string, radix: number | undefined, fallback: number) => {
   const n = parseInt(str, radix);
