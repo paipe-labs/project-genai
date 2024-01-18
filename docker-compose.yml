@@ -21,6 +21,7 @@ services:
       context: tests
       dockerfile: tests.dockerfile
     environment:
+      ENFORCE_JWT_AUTH: false
       SERVER_URL: "http://server:8080"
     depends_on:
       - server

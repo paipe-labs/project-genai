@@ -12,4 +12,4 @@ RUN pip install -r requirements.txt
 
 COPY *.py .
 
-ENTRYPOINT ["sh", "-c", "while ! curl -s ${SERVER_URL} > /dev/null; do echo waiting for server; sleep 3; done; pytest -vs --log-level=INFO"]
+ENTRYPOINT ["pytest -vs --log-level=INFO"]
