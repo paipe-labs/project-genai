@@ -1,13 +1,16 @@
-FROM node:20-alpine3.18
+FROM python:3.11.5-slim-bullseye
 
 WORKDIR /genai-server
 
 COPY package.json .
 COPY yarn.lock .
 
-RUN yarn install
+# RUN yarn install
 COPY . .
 
-RUN yarn build
+# RUN yarn build
 
-ENTRYPOINT [ "npx", "ts-node", "public/run.js" ]
+COPY requirements.txt requirements.txt
+RUN pip3 install -r requirements.txt
+
+ENTRYPOINT ["python", "src/run.py"]

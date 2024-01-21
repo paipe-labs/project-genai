@@ -1,0 +1,1 @@
+NOOP = lambda: None
