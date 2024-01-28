@@ -96,7 +96,7 @@ wss.on('connection', (ws: WebSocket) => {
           const task = tasks.get(taskId);
           if (task) {
             const taskResult: TaskResult = {
-              image: resultsUrl[0],
+              images: resultsUrl,
               _v: 1,
             };
             provider.network_connection.onTaskCompleted(task, taskResult);
@@ -115,25 +115,100 @@ wss.on('connection', (ws: WebSocket) => {
 });
 
 app.post('/v1/client/hello/', async (req, res) => {
-  return res.json({ ok: true, url: 'ws://genai.edenvr.link/ws' });
+  return res.json({ ok: true, url: 'wss://api.genai.network' });
+});
+
+app.post('/v1/inference/comfyPipeline', async (req, res) => {
+  const { token, pipelineData } = req.body;
+
+  if (ENFORCE_JWT_AUTH && !verify(token)) {
+    return res.json({ ok: false, error: 'No access rights' });
+  }
+
+  if (!pipelineData) {
+    return res.json({ ok: false, error: 'image pipeline is not specified' });
+  }
+
+  if (connections.length === 0) {
+    return res.json({ ok: false, error: 'no nodes available' });
+  }
+
+  // TODO:
+  const task_id = uuid();
+  const task = new Task({ 
+    _v: 1, 
+    id: task_id,
+    max_price: 15,
+    time_to_money_ratio: 1,
+    task_options: {
+      comfyPipeline: {
+        pipelineData
+      }
+    }
+  });
+  tasks.set(task_id, task);
+
+  task.onFailed = () => {
+    // TODO: Reschedule if not rejected by dispatcher, or rejected by timeout...
+
+    task.setStatus(TaskStatus.Aborted);
+  }
+  task.onCompleted = (result: TaskResult) => {
+    // TODO: Process result
+
+    res.json({ ok: true, result: result });
+  }
+
+  entryQueue.addTask(task, 0);
 });
 
 app.post('/v1/images/generation/', async (req, res) => {
-  const { prompt, model, image_url, size, steps, token } = req.body;
+  const { token, standardPipeline, comfyPipeline } = req.body;
+  const { prompt, model, image_url, size, steps} = standardPipeline ?? {};
+  const { pipelineData } = comfyPipeline ?? {};
+
+  const isComfyPipeline = comfyPipeline !== undefined;
+  const isStandardPipeline = standardPipeline !== undefined;
 
   if (ENFORCE_JWT_AUTH && !verify(token)) {
     return res.json({ ok: false, error: 'operation is not permitted' });
   }
 
-  if (!prompt) {
-    return res.json({ ok: false, error: 'prompt cannot be null or undefined' });
+  if (!isStandardPipeline && !isComfyPipeline) {
+    return res.json({ ok: false, error: 'image pipeline is not specified' });
   }
-  if (prompt.length === 0) {
-    return res.json({ ok: false, error: 'prompt length cannot be 0' });
+
+  if (isStandardPipeline && !isComfyPipeline) {
+    if (!prompt) {
+      return res.json({ ok: false, error: 'prompt cannot be null or undefined' });
+    }
+    if (prompt.length === 0) {
+      return res.json({ ok: false, error: 'prompt length cannot be 0' });
+    }
   }
+
+  if (isComfyPipeline) {
+    if (!pipelineData) {
+      return res.json({ ok: false, error: 'pipelineData cannot be null or undefined' });
+    }
+  }
+
+  if (connections.length === 0) {
+    return res.json({ ok: false, error: 'no nodes available' });
+  }
+
   // TODO:
   const task_id = uuid();
-  const task = new Task({_v: 1, id: task_id, max_price: 15, time_to_money_ratio: 1, task_options: { prompt, model, size, steps}});
+  const task = new Task({ 
+    _v: 1, 
+    id: task_id,
+    max_price: 15,
+    time_to_money_ratio: 1,
+    task_options: {
+      standardPipeline: (!isComfyPipeline) ? { prompt, model, size, steps } : undefined,
+      comfyPipeline: (isComfyPipeline) ? { pipelineData } : undefined,
+    }
+  });
   tasks.set(task_id, task);
 
   task.onFailed = () => {

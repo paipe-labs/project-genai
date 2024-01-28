@@ -9,17 +9,22 @@ export type TaskInfoV1 = {
 
 export type TaskResultV1 = {
   _v: 1,
-  image: string,
+  images: string[],
 }
 
 export type TaskInfo = TaskInfoV1;
 export type TaskResult = TaskResultV1;
 
 export type TaskOptions = {
+  comfyPipeline?: {
+    pipelineData: string
+  },
+  standardPipeline?: {
     prompt: string,
     model: string,
     size?: string,
-    steps?: number,
+    steps?: number
+  }
 };
 
 export type TaskResultClient = {
