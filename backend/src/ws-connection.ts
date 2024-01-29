@@ -14,8 +14,11 @@ export class WSConenction extends NetworkConnection {
   }
 
   sendTask(task: Task): Promise<void> {
+    const taskOptions = task.getTaskOptions();
+
     const clientTask: ClientTask = {
-      options: task.getTaskOptions(),
+      options: taskOptions?.standardPipeline,
+      comfyOptions: taskOptions?.comfyPipeline,
       taskId: task.id,
     }
 
@@ -32,18 +35,8 @@ export class WSConenction extends NetworkConnection {
   }
 }
 
-// export const TaskZod = z.object({
-//   options: z.object({
-//       prompt: z.string(),
-//       model: z.string(),
-//       size: z.string().optional(),
-//       steps: z.number().optional(),
-//   }),
-//   taskId: z.string(),
-// });
-
-//Typescript type from comment above
 export type ClientTask = {
-  options?: TaskOptions,
+  options?: TaskOptions['standardPipeline'],
+  comfyOptions?: TaskOptions['comfyPipeline'],
   taskId: string,
 };
