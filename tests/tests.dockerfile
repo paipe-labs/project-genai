@@ -15,6 +15,6 @@ WORKDIR /genai/tests
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-COPY *.py .
+COPY . .
 
 ENTRYPOINT dockerize -wait ${SERVER_URL}/v1/nodes/health/ -timeout 3s sh -c "pytest -vs --log-level=INFO"
