@@ -1,9 +1,14 @@
 FROM python:3.9-alpine
 
-RUN apk add curl && \
-    apk add --no-cache gcc libressl-dev musl-dev libffi-dev && \
-    pip install --no-cache-dir cryptography==38.0.4 && \
-    apk del libressl-dev musl-dev libffi-dev
+ENV DOCKERIZE_VERSION v0.6.1
+
+RUN apk add curl \
+    && apk add --no-cache gcc libressl-dev musl-dev libffi-dev \
+    && pip install --no-cache-dir cryptography==38.0.4 \
+    && apk del libressl-dev musl-dev libffi-dev \
+    && wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
+    && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
+    && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
 
 WORKDIR /genai/tests
 
@@ -12,4 +17,4 @@ RUN pip install -r requirements.txt
 
 COPY *.py .
 
-ENTRYPOINT ["sh", "-c", "pytest -vs --log-level=INFO"]
+ENTRYPOINT dockerize -wait ${SERVER_URL}/v1/nodes/health/ -timeout 3s sh -c "pytest -vs --log-level=INFO"

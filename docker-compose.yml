@@ -2,12 +2,14 @@ services:
   server:
     image: genai-server
     build:
-      context: backend
+      context: backend-python
       dockerfile: backend.dockerfile
     ports:
       - "8080:8080"
+    hostname: server
     environment:
       ENFORCE_JWT_AUTH: false
+      DEBUG: true
     # TODO: pass self url as command line argument
 
   node:
