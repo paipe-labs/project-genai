@@ -1,0 +1,31 @@
+name: tests
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+
+jobs:
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+            submodules: recursive
+            token: ${{ secrets.REPOSITORY_ACESS_KEY }}
+      - name: build docker images
+        run: docker compose build
+      - name: run containers and tests
+        run: |
+          docker compose up -d server node
+          docker compose run tests
+      - name: show server logs
+        if: always()
+        run: docker compose logs --no-log-prefix server
+      - name: show node logs
+        if: always()
+        run: docker compose logs --no-log-prefix node
+      - name: stop docker compose
+        if: always()
+        run: docker compose down
