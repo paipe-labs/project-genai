@@ -36,15 +36,20 @@ def test_post_client_hello():
     assert "url" in response_json
 
 
-def test_post_images_generation():
+def test_post_images_generation_standard():
     wait_for_http(IMAGES_GENERATIONS_ENDPOINT)
+    
+    # waiting for node to connect to backend-server
+    time.sleep(1)
 
     # TODO: proper jwt token check
     input_data = {
         "token": "",
-        "prompt": "space surfer",
-        "steps": 25,
-        "model": "SD2.1",
+        "standardPipeline": {
+            "prompt": "space surfer",
+            "steps": 25,
+            "model": "SD2.1",
+        },
     }
     response = requests.post(IMAGES_GENERATIONS_ENDPOINT, json=input_data)
     response_json = response.json()
@@ -52,4 +57,4 @@ def test_post_images_generation():
     logger.info(response_json)
     assert response.status_code == 200
     assert "result" in response_json
-    assert "image" in response_json["result"]
+    assert "images" in response_json["result"]
