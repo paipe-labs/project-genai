@@ -32,6 +32,40 @@ tasks = {}
 def hello():
     return jsonify({'ok': True, 'url': 'ws://genai.edenvr.link/ws'})
 
+@app.route('/v1/inference/comfyPipeline', methods=['POST'])
+def add_comfy_task():
+    data = request.json
+    token = data.get('token')
+    pipeline_data = data.get('pipelineData')
+
+    if ENFORCE_JWT_AUTH and not verify(token):
+        return jsonify({'ok': False, 'error': 'operation is not permitted'})
+    
+    if not pipeline_data:
+        return jsonify({'ok': False, 'error': 'image pipeline is not specified'}), 400
+
+    if len(registered_providers) == 0:
+        return jsonify({'ok': False, 'error': 'no nodes available'}), 503
+
+    task_id = uuid.uuid4()
+    task = Task(TaskInfo(**{'id': str(task_id), 'max_cost': 15, 'time_to_money_ratio': 1, 'task_options': TaskOptions(**{'comfy_pipeline': ComfyPipelineOptions(**{'pipeline_data': pipeline_data})})}))
+    tasks[str(task_id)] = task
+
+    def on_failed():
+        # TODO: Reschedule if not rejected by dispatcher, or rejected by timeout...
+        task.set_status(TaskStatus.Aborted)
+
+    def on_completed(result):
+        # TODO: Process result
+        return jsonify({'ok': True, 'result': result})
+
+    task.on_failed = on_failed
+    task.on_completed = on_completed
+
+    entryQueue.add_task(task, 0)  # Assuming similar method signature and functionality
+
+    return jsonify({'ok': True, 'message': 'Task submitted successfully', 'task_id': task_id}), 202
+
 @app.route('/v1/nodes/health/', methods=['GET'])
 def health():
     if registered_providers != {}:
@@ -54,8 +88,8 @@ def generate_image():
     if not prompt:
         return jsonify({'ok': False, 'error': 'prompt cannot be null or undefined'})
 
-    if len(prompt) == 0:
-        return jsonify({'ok': False, 'error': 'prompt length cannot be 0'})
+    if not registered_providers:
+        return jsonify({'ok': False, 'error': 'no nodes available'})
 
     task_id = uuid.uuid4()
     task = Task(TaskInfo(**{'id': str(task_id), 'max_cost': 15, 'time_to_money_ratio': 1, 'task_options': TaskOptions(**{'prompt': prompt, 'model': model, 'size': size, 'steps': steps})}))
