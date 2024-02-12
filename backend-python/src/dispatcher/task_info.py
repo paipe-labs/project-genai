@@ -16,14 +16,21 @@ class TaskStatus(Enum):
     COMPLETED = auto()
     TIMED_OUT = auto()
 
+@dataclass
+class ComfyPipelineOptions:
+    pipeline_data: str
 
 @dataclass
-class TaskOptions:
+class StandardPipelineOptions:
     prompt: str
     model: str
     size: Optional[str] = None
     steps: Optional[int] = None
 
+@dataclass
+class TaskOptions:
+    comfy_pipeline: Optional[ComfyPipelineOptions] = None
+    standard_pipeline: Optional[StandardPipelineOptions] = None
 
 @dataclass
 class TaskInfo:
@@ -35,7 +42,7 @@ class TaskInfo:
 
 @dataclass
 class TaskResult:
-    image: str
+    images: list[str]
 
 
 class TaskResultType(Enum):
@@ -101,4 +108,3 @@ def task_status_payload_to_string(payload: TaskStatusPayload) -> str:
         return "ASSIGNED TO PROVIDER: provider_id={id}, min_score={score}, waiting_time={waiting_time}".format(provider_id=payload.provider_id, score=payload.min_score, waiting_time=payload.waiting_time)
     else:
         return payload.task_status.name
-
