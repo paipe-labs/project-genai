@@ -16,11 +16,14 @@ class WSConnection(NetworkConnection):
         self.onConnectionRestored()
 
     def send_task(self, task: Task):
-        clientTask = {
-          'options': {k: v for k, v in asdict(task.task_options.standard_pipeline).items() if v is not None} if task.task_options.standard_pipeline else None,
-          'comfyOptions': {k: v for k, v in asdict(task.task_options.comfy_pipeline).items() if v is not None} if task.task_options.comfy_pipeline else None,
-          'taskId': task.id,
-        }
+        clientTask = {'taskId': task.id}
+    
+        if task.task_options.standard_pipeline:
+            clientTask['options'] = {k: v for k, v in asdict(task.task_options.standard_pipeline).items() if v is not None}
+
+        if task.task_options.comfy_pipeline:
+            clientTask['comfyOptions'] = {'pipelineData': task.task_options.comfy_pipeline.pipeline_data}
+
         self.ws.send(json.dumps(clientTask))
 
     def abortTask(self, task: Task):
