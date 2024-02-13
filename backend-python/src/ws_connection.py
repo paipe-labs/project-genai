@@ -16,8 +16,10 @@ class WSConnection(NetworkConnection):
         self.onConnectionRestored()
 
     def send_task(self, task: Task):
+
         clientTask = {
-          'options': {k: v for k, v in asdict(task.task_options).items() if v is not None},
+          'options': {k: v for k, v in asdict(task.task_options.standard_pipeline).items() if v is not None} if task.task_options.standard_pipeline else None,
+          'comfy_options': {k: v for k, v in asdict(task.task_options.comfy_pipeline).items() if v is not None} if task.task_options.comfy_pipeline else None,
           'taskId': task.id,
         }
         self.ws.send(json.dumps(clientTask))
@@ -33,5 +35,6 @@ class WSConnection(NetworkConnection):
 
 class ClientTask:
     def __init__(self, options: TaskOptions, taskId: str):
-        self.options = options
+        self.options = options.get('standard_pipeline')
+        self.comfy_options = options.get('comfy_pipeline')
         self.taskId = taskId

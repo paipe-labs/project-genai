@@ -6,7 +6,7 @@ from dispatcher.entry_queue import EntryQueue
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.task import Task, TaskStatus
 from ws_connection import WSConnection
-from dispatcher.task_info import TaskResult, TaskInfo, TaskOptions
+from dispatcher.task_info import TaskResult, TaskInfo, TaskOptions, ComfyPipelineOptions, StandardPipelineOptions
 import json
 from gevent.pywsgi import WSGIServer
 from verification import verify
@@ -32,6 +32,40 @@ tasks = {}
 def hello():
     return jsonify({'ok': True, 'url': 'ws://genai.edenvr.link/ws'})
 
+@app.route('/v1/inference/comfyPipeline', methods=['POST'])
+def add_comfy_task():
+    data = request.json
+    token = data.get('token')
+    pipeline_data = data.get('pipelineData')
+
+    if ENFORCE_JWT_AUTH and not verify(token):
+        return jsonify({'ok': False, 'error': 'operation is not permitted'})
+    
+    if not pipeline_data:
+        return jsonify({'ok': False, 'error': 'image pipeline is not specified'}), 400
+
+    if len(registered_providers) == 0:
+        return jsonify({'ok': False, 'error': 'no nodes available'}), 503
+
+    task_id = uuid.uuid4()
+    task = Task(TaskInfo(**{'id': str(task_id), 'max_cost': 15, 'time_to_money_ratio': 1, 'task_options': TaskOptions(**{'comfy_pipeline': ComfyPipelineOptions(**{'pipeline_data': pipeline_data})})}))
+    tasks[str(task_id)] = task
+
+    def on_failed():
+        # TODO: Reschedule if not rejected by dispatcher, or rejected by timeout...
+        task.set_status(TaskStatus.Aborted)
+
+    def on_completed(result):
+        # TODO: Process result
+        return jsonify({'ok': True, 'result': result})
+
+    task.on_failed = on_failed
+    task.on_completed = on_completed
+
+    entryQueue.add_task(task, 0)  # Assuming similar method signature and functionality
+
+    return jsonify({'ok': True, 'message': 'Task submitted successfully', 'task_id': task_id}), 202
+
 @app.route('/v1/nodes/health/', methods=['GET'])
 def health():
     if registered_providers != {}:
@@ -41,24 +75,58 @@ def health():
 @app.route('/v1/images/generation/', methods=['POST'])
 def generate_image():
     data = request.get_json()
-    prompt = data.get('prompt')
-    model = data.get('model')
-    image_url = data.get('image_url')
-    size = data.get('size')
-    steps = data.get('steps')
+    comfy_pipeline = data.get('comfyPipeline')
+    pipeline_data = None
+    if comfy_pipeline:
+        pipeline_data = comfy_pipeline.get('pipelineData')
+
+    standard_pipeline = data.get('standardPipeline')
+    prompt, model, image_url, size, steps = None, None, None, None, None
+    if standard_pipeline:
+        prompt = standard_pipeline.get('prompt')
+        model = standard_pipeline.get('model')
+        image_url = standard_pipeline.get('image_url')
+        size = standard_pipeline.get('size')
+        steps = standard_pipeline.get('steps')
+
     token = data.get('token')
 
     if ENFORCE_JWT_AUTH and not verify(token):
         return jsonify({'ok': False, 'error': 'operation is not permitted'})
 
-    if not prompt:
-        return jsonify({'ok': False, 'error': 'prompt cannot be null or undefined'})
+    if not standard_pipeline and not comfy_pipeline:
+        return jsonify({'ok': False, 'error': 'image pipeline is not specified'})
+    
+    if standard_pipeline and not comfy_pipeline:
+        if not prompt:
+            return jsonify({'ok': False, 'error': 'prompt cannot be null or undefined'})
+        if len(prompt) == 0:
+            return jsonify({'ok': False, 'error': 'prompt length cannot be 0'})
+    
+    if comfy_pipeline:
+        if not pipeline_data:
+            return jsonify({'ok': False, 'error': 'pipelineData cannot be null or undefined'})
 
-    if len(prompt) == 0:
-        return jsonify({'ok': False, 'error': 'prompt length cannot be 0'})
+    if not registered_providers:
+        return jsonify({'ok': False, 'error': 'no nodes available'})
 
     task_id = uuid.uuid4()
-    task = Task(TaskInfo(**{'id': str(task_id), 'max_cost': 15, 'time_to_money_ratio': 1, 'task_options': TaskOptions(**{'prompt': prompt, 'model': model, 'size': size, 'steps': steps})}))
+    task = Task(
+        TaskInfo(**{
+            'id': str(task_id),
+            'max_cost': 15,
+            'time_to_money_ratio': 1,
+            'task_options': TaskOptions(**{
+                'standard_pipeline': StandardPipelineOptions(**{
+                    'prompt': prompt,
+                    'model': model,
+                    'size': size,
+                    'steps': steps
+                }) if standard_pipeline else None,
+                'comfy_pipeline': ComfyPipelineOptions(**{'pipeline_data': pipeline_data}) if comfy_pipeline else None
+            })
+        })
+    )
     tasks[str(task_id)] = task
 
     def on_failed():
@@ -83,7 +151,7 @@ def generate_image():
 
     del connections[str(task_id)]
 
-    return jsonify({'ok': True, "result": {"image": response}})
+    return jsonify({'ok': True, "result": {"images": response}})
 
 @sock.route('/')
 def websocket_connection(ws):
@@ -115,7 +183,7 @@ def websocket_connection(ws):
                     registered_providers[ws] = node_id
             elif msg_type == 'result':
                 task_id = data_json.get('taskId')
-                results_url = data_json.get('resultsUrl')[0]
+                results_url = data_json.get('resultsUrl')
                 id_ = registered_providers[ws]
                 provider = dispatcher.providers_map.get(id_)
 
