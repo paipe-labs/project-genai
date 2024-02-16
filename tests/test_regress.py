@@ -63,7 +63,7 @@ def test_post_images_generation_comfyui():
     input_data = {
         "token": "",
         "comfyPipeline": {
-            "pipelineData": "space surfer"
+            "pipelineData": "pipelineData"
         }
     }
     response = requests.post(IMAGES_GENERATIONS_ENDPOINT, json=input_data)

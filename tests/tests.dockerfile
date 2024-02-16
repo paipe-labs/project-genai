@@ -17,4 +17,4 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-ENTRYPOINT dockerize -wait ${SERVER_URL}/v1/nodes/health/ -timeout 3s sh -c "pytest -vs --log-level=INFO"
+ENTRYPOINT dockerize -wait ${SERVER_URL}/v1/nodes/health/ -timeout 20s sh -c "pytest -vs --log-level=INFO"
