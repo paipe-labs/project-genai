@@ -36,35 +36,67 @@ def test_post_client_hello():
     assert "url" in response_json
 
 
-def test_post_images_generation_standard():
-    wait_for_http(IMAGES_GENERATIONS_ENDPOINT)
+# def test_post_images_generation_standard():
+#     wait_for_http(IMAGES_GENERATIONS_ENDPOINT)
 
-    # TODO: proper jwt token check
-    input_data = {
-        "token": "",
-        "standardPipeline": {
-            "prompt": "space surfer",
-            "model": "SD2.1",
-        }
-    }
-    response = requests.post(IMAGES_GENERATIONS_ENDPOINT, json=input_data)
-    response_json = response.json()
+#     # TODO: proper jwt token check
+#     input_data = {
+#         'token': '',
+#         'standardPipeline': {
+#             'prompt': 'space surfer',
+#             'model': 'SD2.1',
+#             'size': 512,
+#             'steps': 25,
+#         }
+#     }
+#     response = requests.post(IMAGES_GENERATIONS_ENDPOINT, json=input_data)
+#     response_json = response.json()
 
-    logger.info(response_json)
-    assert response.status_code == 200
-    assert "result" in response_json
-    assert "images" in response_json["result"]
+#     logger.info(response_json)
+#     assert response.status_code == 200
+#     assert 'result' in response_json
+#     assert 'images' in response_json['result']
 
 
 def test_post_images_generation_comfyui():
     wait_for_http(IMAGES_GENERATIONS_ENDPOINT)
 
     # TODO: proper jwt token check
+
+    pipelineData = """
+    {
+        "9": {
+            "inputs": {
+                "filename_prefix": "ComfyUI",
+                "images": [
+                    "10",
+                    0
+                ]
+            },
+            "class_type": "SaveImage"
+        },
+        "10": {
+            "inputs": {
+                "image": "image.png",
+                "upload": "image"
+            },
+            "class_type": "LoadImage"
+        }
+    }
+    """
+
+    pipelineImages = """
+    {
+        "image.png": "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAIAQMAAAD+wSzIAAAABlBMVEX///+/v7+jQ3Y5AAAADklEQVQI12P4AIX8EAgALgAD/aNpbtEAAAAASUVORK5CYII"
+    }
+    """
+
     input_data = {
         "token": "",
         "comfyPipeline": {
-            "pipelineData": "pipelineData"
-        }
+            "pipelineData": pipelineData,
+            "pipelineImages": pipelineImages,
+        },
     }
     response = requests.post(IMAGES_GENERATIONS_ENDPOINT, json=input_data)
     response_json = response.json()

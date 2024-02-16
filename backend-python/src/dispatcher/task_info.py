@@ -19,6 +19,7 @@ class TaskStatus(Enum):
 @dataclass
 class ComfyPipelineOptions:
     pipeline_data: str
+    pipeline_images: str
 
 @dataclass
 class StandardPipelineOptions:
