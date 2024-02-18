@@ -29,7 +29,7 @@ class WSConnection(NetworkConnection):
         if task.task_options.comfy_pipeline:
             clientTask['comfyOptions'] = {
                 'pipelineData': task.task_options.comfy_pipeline.pipeline_data,
-                'pipelineImages': task.task_options.comfy_pipeline.pipeline_images,
+                'pipelineDependencies': task.task_options.comfy_pipeline.pipeline_dependencies,
             }
 
         self.ws.send(json.dumps(clientTask))

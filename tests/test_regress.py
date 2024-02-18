@@ -85,7 +85,7 @@ def test_post_images_generation_comfyui():
     }
     """
 
-    pipelineImages = """
+    images = """
     {
         "image.png": "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAIAQMAAAD+wSzIAAAABlBMVEX///+/v7+jQ3Y5AAAADklEQVQI12P4AIX8EAgALgAD/aNpbtEAAAAASUVORK5CYII"
     }
@@ -95,7 +95,7 @@ def test_post_images_generation_comfyui():
         "token": "",
         "comfyPipeline": {
             "pipelineData": pipelineData,
-            "pipelineImages": pipelineImages,
+            "pipelineDependencies": {"images": images},
         },
     }
     response = requests.post(IMAGES_GENERATIONS_ENDPOINT, json=input_data)

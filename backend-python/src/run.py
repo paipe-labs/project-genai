@@ -37,7 +37,7 @@ def add_comfy_task():
     data = request.json
     token = data.get('token')
     pipeline_data = data.get('pipelineData')
-    pipeline_images = data.get('pipelineImages')
+    pipeline_dependencies = data.get('pipelineDependencies')
 
     if ENFORCE_JWT_AUTH and not verify(token):
         return jsonify({'ok': False, 'error': 'operation is not permitted'})
@@ -56,7 +56,7 @@ def add_comfy_task():
         'task_options': TaskOptions(**{
             'comfy_pipeline': ComfyPipelineOptions(**{
                 'pipeline_data': pipeline_data,
-                'pipeline_images': pipeline_images,
+                'pipeline_dependencies': pipeline_dependencies,
                 })
             }
         )
@@ -91,7 +91,7 @@ def generate_image():
     pipeline_data = None
     if comfy_pipeline:
         pipeline_data = comfy_pipeline.get('pipelineData')
-        pipeline_images = comfy_pipeline.get('pipelineImages')
+        pipeline_dependencies = comfy_pipeline.get('pipelineDependencies')
 
     standard_pipeline = data.get('standardPipeline')
     prompt, model, image_url, size, steps = None, None, None, None, None
@@ -138,7 +138,7 @@ def generate_image():
                 }) if standard_pipeline else None,
                 'comfy_pipeline': ComfyPipelineOptions(**{
                     'pipeline_data': pipeline_data,
-                    'pipeline_images': pipeline_images,
+                    'pipeline_dependencies': pipeline_dependencies,
                 }) if comfy_pipeline else None
             })
         })

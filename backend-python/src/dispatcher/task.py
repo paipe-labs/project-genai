@@ -49,7 +49,7 @@ class Task:
 
     @property
     def priority(self):
-        return self._priority;
+        return self._priority
 
     @property
     def provider_id(self):
