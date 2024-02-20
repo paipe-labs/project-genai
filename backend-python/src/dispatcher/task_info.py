@@ -16,9 +16,12 @@ class TaskStatus(Enum):
     COMPLETED = auto()
     TIMED_OUT = auto()
 
+
 @dataclass
 class ComfyPipelineOptions:
     pipeline_data: str
+    pipeline_dependencies: str
+
 
 @dataclass
 class StandardPipelineOptions:
@@ -27,16 +30,18 @@ class StandardPipelineOptions:
     size: Optional[str] = None
     steps: Optional[int] = None
 
+
 @dataclass
 class TaskOptions:
     comfy_pipeline: Optional[ComfyPipelineOptions] = None
     standard_pipeline: Optional[StandardPipelineOptions] = None
 
+
 @dataclass
 class TaskInfo:
     id: str
     max_cost: int
-    time_to_money_ratio: int 
+    time_to_money_ratio: int
     task_options: Optional[TaskOptions] = None
 
 
@@ -58,14 +63,14 @@ class TaskResultStatus(Enum):
 
 @dataclass
 class TaskResultClient:
-    result_url: list[str] 
+    result_url: list[str]
     task_id: str
     result_type: TaskResultType
     status: Optional[TaskResultStatus] = None
     error: Optional[str] = None
 
 
-'''
+"""
 export type TaskStatusPayload = {
       [TaskStatus.SetToProvider]: [{ providerId: string, minScore: number, waitingTime: number}];
       [TaskStatus.SentFailed]: [{ attempt: number }];
@@ -73,7 +78,8 @@ export type TaskStatusPayload = {
 } & {
       [taskStatus: number | string | symbol]: [];
 };
-'''
+"""
+
 
 @dataclass(kw_only=True)
 class TaskStatusPayload:
@@ -99,12 +105,17 @@ class FailedByProvider(TaskStatusPayload):
     reason: str
     task_status = TaskStatus.FAILED_BY_PROVIDER
 
+
 def task_status_payload_to_string(payload: TaskStatusPayload) -> str:
     if isinstance(payload, FailedByProvider):
         return "FAILED BY PROVIDER: reason={reason}".format(reason=payload.reason)
     elif isinstance(payload, SentFailedPayload):
         return "SENT FAILED: attempt_num={num}".format(num=payload.attempt_num)
     elif isinstance(payload, AssignedToProviderPayload):
-        return "ASSIGNED TO PROVIDER: provider_id={id}, min_score={score}, waiting_time={waiting_time}".format(provider_id=payload.provider_id, score=payload.min_score, waiting_time=payload.waiting_time)
+        return "ASSIGNED TO PROVIDER: provider_id={id}, min_score={score}, waiting_time={waiting_time}".format(
+            provider_id=payload.provider_id,
+            score=payload.min_score,
+            waiting_time=payload.waiting_time,
+        )
     else:
         return payload.task_status.name
