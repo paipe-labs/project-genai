@@ -1,5 +1,6 @@
 from utils.jwt import jwt_verify
 
+
 def verify(token: str) -> bool:
     try:
         jwt = jwt_verify(token)

@@ -1,5 +1,6 @@
 import threading
 
+
 class Timeout:
     def __init__(self, callback, delay):
         self.callback = callback
@@ -14,13 +15,16 @@ class Timeout:
     def cancel(self):
         self.timer.cancel()
 
+
 timeouts = {}
+
 
 def setTimeout(callback, delay):
     timer = Timeout(callback, delay)
     timer.start()
     timeouts[id(timer)] = timer
     return id(timer)
+
 
 def clearTimeout(timer_id):
     if timer_id in timeouts:

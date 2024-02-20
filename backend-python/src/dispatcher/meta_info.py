@@ -1,7 +1,7 @@
 import typing
 
 
-'''
+"""
 {
     _v: 1,
     installed_models: [],
@@ -22,13 +22,14 @@ import typing
     },
     min_cost:
 }
-'''
+"""
+
 
 class PublicMetaInfo(typing.NamedTuple):
     min_cost: int
 
 
-'''
+"""
 {
     _v: 1,
     succeeded_tasks: number,
@@ -43,8 +44,8 @@ class PublicMetaInfo(typing.NamedTuple):
         }
     }
 }
-'''
+"""
+
 
 class PrivateMetaInfo(typing.NamedTuple):
     pass
-
