@@ -1,9 +1,10 @@
 from dispatcher.util.logger import logger
-from dispatcher.task_info import TaskStatus, TaskInfo, TaskResult, TaskStatusPayload, AssignedToProviderPayload, task_status_payload_to_string 
+from dispatcher.task_info import TaskOptions, TaskStatus, TaskInfo, TaskResult, TaskStatusPayload, AssignedToProviderPayload, task_status_payload_to_string, ComfyPipelineOptions, StandardPipelineOptions 
+
+from datetime import datetime
+from flask import jsonify
 
 import typing
-from datetime import datetime
-
 
 class TaskLog(typing.NamedTuple):
     date: datetime
@@ -96,3 +97,30 @@ class Task:
         else:
             self._on_failed()
 
+def build_task_from_query(task_id: int, **kwargs) -> Task:
+    max_cost = kwargs.get('max_cost')
+    time_to_money_ratio = kwargs.get('time_to_money_ratio')
+    standard_pipeline = kwargs.get('standard_pipeline')
+    comfy_pipeline = kwargs.get('comfy_pipeline')
+    task = Task(
+        TaskInfo(**{
+            'id': task_id,
+            'max_cost': max_cost,
+            'time_to_money_ratio': time_to_money_ratio,
+            'task_options': TaskOptions(**{
+                'standard_pipeline': StandardPipelineOptions(**standard_pipeline) if standard_pipeline else None,
+                'comfy_pipeline': ComfyPipelineOptions(**comfy_pipeline) if comfy_pipeline else None
+            })
+        })
+    )
+    def on_failed():
+        task.set_status(TaskStatus.ABORTED)
+
+    def on_completed(result: TaskResult):
+        task.set_status(TaskStatus.COMPLETED)
+        return jsonify({'ok': True, 'result': result})
+
+    task.set_on_failed(on_failed)
+    task.set_on_completed(on_completed)
+
+    return task

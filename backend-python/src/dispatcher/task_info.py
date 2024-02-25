@@ -16,6 +16,11 @@ class TaskStatus(Enum):
     COMPLETED = auto()
     TIMED_OUT = auto()
 
+class PublicTaskStatus(Enum):
+    FAILURE = auto()
+    SUCCESS = auto()
+    PENDING = auto()
+
 @dataclass
 class ComfyPipelineOptions:
     pipeline_data: str
@@ -34,7 +39,7 @@ class TaskOptions:
 
 @dataclass
 class TaskInfo:
-    id: str
+    id: int
     max_cost: int
     time_to_money_ratio: int 
     task_options: Optional[TaskOptions] = None
