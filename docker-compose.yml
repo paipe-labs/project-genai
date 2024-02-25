@@ -16,7 +16,7 @@ services:
     image: genai-node
     build:
       context: client-node
-      dockerfile: client-node-comfyui.dockerfile
+      dockerfile: client-node.dockerfile
     depends_on:
       - server
 

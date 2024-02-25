@@ -146,6 +146,8 @@ class Provider:
         self._in_progress.remove(task)
 
     def task_failed(self, task: Task, fail_reason: str):
+        logger.warn(f'TASK_{task}')
+        print(f'TASK_{task}')
         if task not in self._in_progress:
             return
         self.task_finished(task)
@@ -155,6 +157,9 @@ class Provider:
         self.on_updated()
 
     def task_completed(self, task: Task, result: TaskResult):
+        logger.warn(f'TASK_{task}')
+        logger.info(f'TASK_{task}')
+        print(f'TASK_{task}')
         if task not in self._in_progress:
             return
         self.task_finished(task)

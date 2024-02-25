@@ -17,7 +17,7 @@ class TaskStatus(Enum):
     TIMED_OUT = auto()
 
 class PublicTaskStatus(Enum):
-    FAILURE = auto()
+    FAILURE = auto()  # TODO implement logic of timeouts
     SUCCESS = auto()
     PENDING = auto()
 
@@ -43,7 +43,7 @@ class TaskOptions:
 
 @dataclass
 class TaskInfo:
-    id: int
+    id: str
     max_cost: int
     time_to_money_ratio: int
     task_options: Optional[TaskOptions] = None

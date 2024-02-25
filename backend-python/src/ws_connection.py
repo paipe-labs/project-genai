@@ -1,8 +1,5 @@
 from dispatcher.network_connection import NetworkConnection
-from dispatcher.task_info import TaskOptions
 from dispatcher.task import Task
-from dispatcher.util.logger import logger
-from dataclasses import asdict
 import websocket
 import json
 
@@ -17,16 +14,21 @@ class WSConnection(NetworkConnection):
         self.onConnectionRestored()
 
     def send_task(self, task: Task):
-        def options_as_dict(pipeline):
-            if not pipeline:
-                return None
-            return {k: v for k, v in asdict(pipeline).items() if v is not None} 
-            
-        clientTask = {
-          'options': options_as_dict(task.task_options.standard_pipeline),
-          'comfyOptions': options_as_dict(task.task_options.comfy_pipeline),
-          'taskId': task.id,
-        }
+        clientTask = {'taskId': task.id}
+
+        if task.task_options.standard_pipeline:
+            clientTask['options'] = {
+                'prompt': task.task_options.standard_pipeline.prompt,
+                'model': task.task_options.standard_pipeline.model,
+                'size': task.task_options.standard_pipeline.size,
+                'steps': task.task_options.standard_pipeline.steps,
+            }
+
+        if task.task_options.comfy_pipeline:
+            clientTask['comfyOptions'] = {
+                'pipelineData': task.task_options.comfy_pipeline.pipeline_data,
+                'pipelineDependencies': task.task_options.comfy_pipeline.pipeline_dependencies,
+            }
         self.ws.send(json.dumps(clientTask))
 
     def abortTask(self, task: Task):
