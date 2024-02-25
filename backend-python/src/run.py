@@ -34,9 +34,6 @@ registered_providers = {}
 
 connections = {}  # task_id to future, remove after migration to newer API
 
-@app.route('/v1/client/hello/', methods=['POST'])
-def hello():
-    return jsonify({'ok': True, 'url': 'ws://genai.edenvr.link/ws'})
 
 def check_data_state(data: dict, from_comfy_inf: bool = False) -> tuple:
     token = data.get('token')
@@ -92,15 +89,22 @@ def add_comfy_task():
 
     entry_queue.add_task(task, 0)
 
-    return jsonify({'ok': True, 'message': 'Task submitted successfully', 'task_id': task_id}), 202
+    return (
+        jsonify(
+            {"ok": True, "message": "Task submitted successfully", "task_id": task_id}
+        ),
+        202,
+    )
 
-@app.route('/v1/nodes/health/', methods=['GET'])
+
+@app.route("/v1/nodes/health/", methods=["GET"])
 def health():
     if registered_providers != {}:
-        return jsonify({'ok': True})
-    return jsonify({'ok': False}), 500
+        return jsonify({"ok": True})
+    return jsonify({"ok": False}), 500
 
-@app.route('/v1/images/generation/', methods=['POST'])
+
+@app.route("/v1/images/generation/", methods=["POST"])
 def generate_image():
     data = request.get_json()
     success, error_msg = check_data_state(data)
@@ -126,17 +130,18 @@ def generate_image():
     try:
         response = connections[str(task_id)].result(timeout=10)
     except Exception as e:
-        return jsonify({'error': 'Timeout waiting for WebSocket response'}), 504
+        return jsonify({"error": "Timeout waiting for WebSocket response"}), 504
 
     del connections[str(task_id)]
 
-    return jsonify({'ok': True, "result": {"images": response}})
+    return jsonify({"ok": True, "result": {"images": response}})
 
-@sock.route('/')
+
+@sock.route("/")
 def websocket_connection(ws):
     while True:
         data = ws.receive()
-        if data == 'close':
+        if data == "close":
             if ws in registered_providers:
                 id_ = registered_providers[ws]
                 provider = dispatcher.providers_map.get(id_)
@@ -145,9 +150,9 @@ def websocket_connection(ws):
             break
         else:
             data_json = json.loads(data)
-            msg_type = data_json.get('type')
-            if msg_type == 'register':
-                node_id = data_json.get('node_id')
+            msg_type = data_json.get("type")
+            if msg_type == "register":
+                node_id = data_json.get("node_id")
                 public_meta = PublicMetaInfo(10)
                 if node_id in dispatcher.providers_map:
                     existing_provider = dispatcher.providers_map[node_id]
@@ -156,12 +161,14 @@ def websocket_connection(ws):
                 else:
                     private_meta = PrivateMetaInfo()
                     network_connection = WSConnection(ws)
-                    provider = Provider(node_id, public_meta, private_meta, network_connection)
+                    provider = Provider(
+                        node_id, public_meta, private_meta, network_connection
+                    )
                     dispatcher.add_provider(provider)
                     registered_providers[ws] = node_id
-            elif msg_type == 'result':
-                task_id = data_json.get('taskId')
-                results_url = data_json.get('resultsUrl')
+            elif msg_type == "result":
+                task_id = data_json.get("taskId")
+                results_url = data_json.get("resultsUrl")
                 id_ = registered_providers[ws]
                 provider = dispatcher.providers_map.get(id_)
 
@@ -175,6 +182,6 @@ def websocket_connection(ws):
                     connections[task_id].set_result(results_url)
 
 
-if __name__ == '__main__':
-    http_server = WSGIServer(('0.0.0.0', HTTP_WS_PORT), app)
+if __name__ == "__main__":
+    http_server = WSGIServer(("0.0.0.0", HTTP_WS_PORT), app)
     http_server.serve_forever()

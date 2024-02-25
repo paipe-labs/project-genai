@@ -6,6 +6,7 @@ from dataclasses import asdict
 import websocket
 import json
 
+
 class WSConnection(NetworkConnection):
     def __init__(self, ws: websocket.WebSocket):
         super().__init__()
@@ -29,7 +30,11 @@ class WSConnection(NetworkConnection):
         self.ws.send(json.dumps(clientTask))
 
     def abortTask(self, task: Task):
-        self.ws.send(json.dumps({
-          'type': 'abort',
-          'task_id': task.id,
-        }))
+        self.ws.send(
+            json.dumps(
+                {
+                    "type": "abort",
+                    "task_id": task.id,
+                }
+            )
+        )

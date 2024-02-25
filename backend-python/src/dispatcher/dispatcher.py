@@ -1,6 +1,10 @@
 from dispatcher.provider import Provider
-from dispatcher.task import Task 
-from dispatcher.task_info import AssignedToProviderPayload, TaskStatus, TaskStatusPayload
+from dispatcher.task import Task
+from dispatcher.task_info import (
+    AssignedToProviderPayload,
+    TaskStatus,
+    TaskStatusPayload,
+)
 from dispatcher.entry_queue import EntryQueue
 from dispatcher.util.logger import logger
 from constants.env import DEBUG
@@ -11,6 +15,7 @@ from math import inf
 # TODO: reevaluate & move
 DISABLE_DISPATCHER_QUEUE_THRESHOLD = 50
 TASK_NUM_MAX_ATTEMPTS = 5
+
 
 def is_busy_provider(provider: Provider) -> bool:
     return provider.queue_length > DISABLE_DISPATCHER_QUEUE_THRESHOLD
@@ -28,7 +33,7 @@ class Dispatcher:
         return self._providers_map
 
     @property
-    def min_cost(self): # used to be a get_min_cost() method
+    def min_cost(self):  # used to be a get_min_cost() method
         return self._min_cost
 
     def add_provider(self, provider: Provider) -> None:
@@ -60,13 +65,15 @@ class Dispatcher:
     def _schedule_task(self, task: Task) -> bool:
         best_provider: Provider | None = None
         min_score: int | float = inf
-        min_waiting_time: int | float = inf 
+        min_waiting_time: int | float = inf
         for provider in self._providers_map.values():
             if is_busy_provider(provider):
                 continue
             if provider.min_cost > task.max_cost:
                 continue
-            waiting_time = provider.waiting_time + provider.estimate_task_waiting_time(task)
+            waiting_time = provider.waiting_time + provider.estimate_task_waiting_time(
+                task
+            )
             score = provider.min_cost + waiting_time * task.time_to_money_ratio
             if best_provider == None or score < min_score:
                 min_score = score
@@ -77,11 +84,16 @@ class Dispatcher:
             logger.info("Not found provider for task {id}".format(id=task.id))
             return False
 
-        task.set_status(AssignedToProviderPayload(provider_id=best_provider.id, min_score=min_score, waiting_time=min_waiting_time))
+        task.set_status(
+            AssignedToProviderPayload(
+                provider_id=best_provider.id,
+                min_score=min_score,
+                waiting_time=min_waiting_time,
+            )
+        )
         best_provider.schedule_task(task)
         self.calculate_min_cost()
         return True
-
 
     def pull_task(self) -> None:
         task = self._entry_queue.pop_task(self._min_cost)
@@ -102,8 +114,9 @@ class Dispatcher:
 
     def task_added_callback(self, task: Task) -> None:
         if task.max_cost < self._min_cost:
-            logger.warn("Task {id} rejected by dispatcher: cost too low".format(id=task.id))
+            logger.warn(
+                "Task {id} rejected by dispatcher: cost too low".format(id=task.id)
+            )
             task.set_status(TaskStatusPayload(task_status=TaskStatus.REJECTED))
             return
         self.pull_task()
-

@@ -48,7 +48,7 @@ class NetworkConnection:
             logger.warn("on_meta_info_updated callback is empty")
             return
         self._on_public_meta_info_updated(meta_info)
-        
+
     def on_connection_lost(self):
         if self._on_connection_lost == None:
             logger.warn("on_connection_lost callback is empty")
@@ -67,7 +67,6 @@ class NetworkConnection:
             return
         self._on_task_completed(task, task_result)
 
-
     def on_task_failed(self, task: Task, reason: str):
         if self._on_task_failed == None:
             logger.warn("on_task_failed callback is empty")
@@ -85,4 +84,3 @@ class NetworkConnection:
 
     def on_progress_update(self):
         pass
-

@@ -6,10 +6,12 @@ import typing
 
 
 class ProviderEstimator:
-    def __init__(self, public_meta_info: PublicMetaInfo, private_meta_info: PrivateMetaInfo):
+    def __init__(
+        self, public_meta_info: PublicMetaInfo, private_meta_info: PrivateMetaInfo
+    ):
         self._private_meta_info = private_meta_info
         self._public_meta_info = public_meta_info
-        self._estimated_time: dict[Task,int] = dict()
+        self._estimated_time: dict[Task, int] = dict()
         self._total_estimated_time = 0
 
     @property
@@ -33,11 +35,12 @@ class ProviderEstimator:
 
     def remove_task(self, task: Task):
         if task not in self._estimated_time.keys():
-            logger.warning("trying to remove task {id} that wasn't added".format(id=task.id))
+            logger.warning(
+                "trying to remove task {id} that wasn't added".format(id=task.id)
+            )
             return
         self._total_estimated_time -= self._estimated_time.pop(task)
 
-    def estimate_task_time(self, task: Task) -> int: # in milliseconds
+    def estimate_task_time(self, task: Task) -> int:  # in milliseconds
         # TODO
         return 4
-

@@ -1,8 +1,17 @@
 from dispatcher.util.logger import logger
-from dispatcher.task_info import TaskOptions, TaskStatus, TaskInfo, TaskResult, TaskStatusPayload, AssignedToProviderPayload, task_status_payload_to_string, ComfyPipelineOptions, StandardPipelineOptions 
 
 from datetime import datetime
 from flask import jsonify
+from dispatcher.task_info import (
+    AssignedToProviderPayload,
+    ComfyPipelineOptions,
+    TaskStatus,
+    TaskInfo,
+    TaskResult,
+    TaskStatusPayload,
+    StandardPipelineOptions,
+    task_status_payload_to_string,
+)
 
 import typing
 
@@ -50,7 +59,7 @@ class Task:
 
     @property
     def priority(self):
-        return self._priority;
+        return self._priority
 
     @property
     def provider_id(self):
@@ -63,10 +72,11 @@ class Task:
     def set_priority(self, priority: int) -> None:
         self._priority = priority
 
-    def set_status(self,task_status_payload: TaskStatusPayload) -> None:
+    def set_status(self, task_status_payload: TaskStatusPayload) -> None:
         self._status = task_status_payload.task_status
-        self._log.append(TaskLog(date=datetime.now(),
-                                 task_status_payload=task_status_payload))
+        self._log.append(
+            TaskLog(date=datetime.now(), task_status_payload=task_status_payload)
+        )
         if isinstance(task_status_payload, AssignedToProviderPayload):
             self._provider_id = task_status_payload.provider_id
 
@@ -77,7 +87,12 @@ class Task:
         self._num_failed_attempts += 1
 
     def get_log_string(self):
-        return "\n".join(t.strftime("%H:%M:%S %d/%m/%Y") + " " + task_status_payload_to_string(payload) for t, payload in self._log)
+        return "\n".join(
+            t.strftime("%H:%M:%S %d/%m/%Y")
+            + " "
+            + task_status_payload_to_string(payload)
+            for t, payload in self._log
+        )
 
     def set_on_completed(self, on_completed_callback) -> None:
         self._on_completed = on_completed_callback

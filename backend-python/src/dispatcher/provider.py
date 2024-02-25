@@ -1,7 +1,12 @@
 from dispatcher.provider_estimator import ProviderEstimator
 from dispatcher.network_connection import NetworkConnection
 from dispatcher.task import Task
-from dispatcher.task_info import FailedByProvider, TaskStatusPayload, TaskStatus, TaskResult
+from dispatcher.task_info import (
+    FailedByProvider,
+    TaskStatusPayload,
+    TaskStatus,
+    TaskResult,
+)
 from dispatcher.util.logger import logger
 from dispatcher.meta_info import PublicMetaInfo, PrivateMetaInfo
 import asyncio
@@ -16,12 +21,18 @@ OFFLINE_TIMEOUT = 3000
 
 
 class Provider:
-    def __init__(self, provider_id: str, public_meta_info: PublicMetaInfo, private_meta_info: PrivateMetaInfo, network_connection: NetworkConnection):
+    def __init__(
+        self,
+        provider_id: str,
+        public_meta_info: PublicMetaInfo,
+        private_meta_info: PrivateMetaInfo,
+        network_connection: NetworkConnection,
+    ):
         self._id = provider_id
         self._pub_meta_info = public_meta_info
         self._pr_meta_info = private_meta_info
         self._is_online = True
-        self._offline_timeout = None   # NodeJS.Timeout
+        self._offline_timeout = None  # NodeJS.Timeout
 
         self._on_closed_callback = None
         self._on_updated_callback = None
@@ -36,7 +47,6 @@ class Provider:
         self._network_connection.set_on_task_completed(self.task_completed)
         self._network_connection.set_on_task_failed(self.task_failed)
 
-    
     @property
     def id(self):
         return self._id
@@ -50,7 +60,7 @@ class Provider:
         return self._estimator
 
     @property
-    def queue_length(self): # used to be a method
+    def queue_length(self):  # used to be a method
         return len(self._in_progress)
 
     @property
@@ -58,7 +68,7 @@ class Provider:
         return self._estimator.waiting_time
 
     @property
-    def min_cost(self): # used to be a method
+    def min_cost(self):  # used to be a method
         if self._is_online == False:
             return inf
         return self._pub_meta_info.min_cost
@@ -68,8 +78,8 @@ class Provider:
             return
         # TODO
         # self._offline_timeot = setTimeout(
-            # call dispose, on_closed
-            # 1000
+        # call dispose, on_closed
+        # 1000
         # )
 
         self._is_online = False
@@ -107,7 +117,7 @@ class Provider:
         self._estimator.add_task(task)
         self.async_schedule_task(task)
 
-    def async_schedule_task(self, task: Task): # TODO make async)))
+    def async_schedule_task(self, task: Task):  # TODO make async)))
         try:
             # Assuming send_task is an async method of network_connection
             self.network_connection.send_task(task)
@@ -117,25 +127,24 @@ class Provider:
             print("ex", e)
             pass
 
-
     def estimate_task_waiting_time(self, task: Task) -> int:
         return self._estimator.estimate_task_time(task)
-    
+
     def abort_task(self, task: Task):
         self.task_finished(task)
         # TODO
-        #(async () => {
+        # (async () => {
         #  try {
         #    await this.network_connection.abortTask(task);
         #  } catch (e) {
         #    logger.error(e);
         #  }
-        #})();
+        # })();
 
     def task_finished(self, task: Task):
         self._estimator.remove_task(task)
         self._in_progress.remove(task)
-    
+
     def task_failed(self, task: Task, fail_reason: str):
         if task not in self._in_progress:
             return
@@ -161,13 +170,16 @@ class Provider:
 
     def on_closed(self):
         if self._on_closed_callback == None:
-            logger.warn("On updated callback not set in provider {id}".format(id=self._id))
+            logger.warn(
+                "On updated callback not set in provider {id}".format(id=self._id)
+            )
             return
         self._on_closed_callback()
 
     def on_updated(self):
         if self._on_updated_callback == None:
-            logger.warn("On updated callback not set in provider {id}".format(id=self._id))
+            logger.warn(
+                "On updated callback not set in provider {id}".format(id=self._id)
+            )
             return
         self._on_updated_callback()
-
