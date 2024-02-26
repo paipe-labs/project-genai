@@ -36,45 +36,51 @@ connections = {}  # task_id to future, remove after migration to newer API
 def check_data_and_state(data: dict, from_comfy_inf: bool = False) -> tuple: # TODO add error codes
     token = data.get('token')
     if ENFORCE_JWT_AUTH and not verify(token):
-        return False, {'ok': False, 'error': 'operation is not permitted'}
+        return False, {'ok': False, 'error': 'operation is not permitted'}, 401
     
     if len(registered_providers) == 0:
-        return False, {'ok': False, 'error': 'no nodes available'}
+        return False, {'ok': False, 'error': 'no nodes available'}, 403
     
     if from_comfy_inf:
         pipeline_data = data.get('pipelineData')
         if not pipeline_data:
-            return False, {'ok': False, 'error': 'image pipeline is not specified'}
+            return False, {'ok': False, 'error': 'image pipeline is not specified'}, 404
     else:
         comfy_pipeline = data.get('comfyPipeline')
         standard_pipeline = data.get('standardPipeline')
         if not standard_pipeline and not comfy_pipeline:
-            return False, {'ok': False, 'error': 'image pipeline is not specified'}
+            return False, {'ok': False, 'error': 'image pipeline is not specified'}, 404
 
         if standard_pipeline:
             prompt = standard_pipeline.get('prompt')
             if not prompt:
-                return False, {'ok': False, 'error': 'prompt cannot be null or undefined'}
+                return False, {'ok': False, 'error': 'prompt cannot be null or undefined'}, 404
             if len(prompt) == 0:
-                return False, {'ok': False, 'error': 'prompt length cannot be 0'}
+                return False, {'ok': False, 'error': 'prompt length cannot be 0'}, 404
         if comfy_pipeline:
             pipeline_data = comfy_pipeline.get('pipelineData')
             if not pipeline_data:
-                return False, {'ok': False, 'error': 'pipelineData cannot be null or undefined'}
-    return True, None
+                return False, {'ok': False, 'error': 'pipelineData cannot be null or undefined'}, 404
+    return True, None, None
 
 
 @app.route('/v1/client/hello/', methods=['POST'])
 def hello():
-    return jsonify({'ok': True, 'url': 'ws://genai.edenvr.link/ws'})
+    return (
+        jsonify({'ok': True, 'url': 'ws://genai.edenvr.link/ws'}),
+        200
+    )
 
 
 @app.route('/v1/inference/comfyPipeline', methods=['POST'])
 def add_comfy_task():
     data = request.get_json()
-    success, error_msg = check_data_and_state(data, True)
+    success, error_msg, error_code = check_data_and_state(data, True)
     if not success:
-        return jsonify(error_msg)
+        return (
+            jsonify(error_msg),
+            error_code
+        )
 
     task_id = str(uuid.uuid4())
     task = build_task_from_query(task_id, max_cost=data.get('max_cost', 15), time_to_money_ratio=data.get('time_to_money_ratio', 1), comfy_pipeline={'pipelineData': data.get('pipelineData'), 'pipelineDependencies': data.get('pipelineDependencies')})
@@ -95,16 +101,25 @@ def add_comfy_task():
 @app.route("/v1/nodes/health/", methods=["GET"])
 def health():
     if registered_providers != {}:
-        return jsonify({"ok": True})
-    return jsonify({"ok": False}), 500
+        return (
+            jsonify({"ok": True}),
+            200
+        )
+    return (
+        jsonify({"ok": False}),
+        500
+    )
 
 
 @app.route("/v1/images/generation/", methods=["POST"])
 def generate_image():
     data = request.get_json()
-    success, error_msg = check_data_and_state(data)
+    success, error_msg, error_code = check_data_and_state(data)
     if not success:
-        return jsonify(error_msg)
+        return (
+            jsonify(error_msg),
+            error_code
+        )
 
     task_id = str(uuid.uuid4())
     task = build_task_from_query(task_id, 
@@ -124,18 +139,27 @@ def generate_image():
     try:
         response = connections[task_id].result(timeout=10)
     except Exception as e:
-        return jsonify({"error": "Timeout waiting for WebSocket response"}), 504
+        return (
+            jsonify({"error": "Timeout waiting for WebSocket response"}),
+            504
+        )
 
     del connections[task_id]
 
-    return jsonify({"ok": True, "result": {"images": response}})
+    return (
+        jsonify({"ok": True, "result": {"images": response}}),
+        202
+    )
 
 @app.route("/v1/tasks/", methods=["POST"])
 def add_task():
     data = request.get_json()
-    success, error_msg = check_data_and_state(data)
+    success, error_msg, error_code = check_data_and_state(data)
     if not success:
-        return jsonify(error_msg)
+        return (
+            jsonify(error_msg),
+            error_code
+        )
 
     task_id = str(uuid.uuid4())
     task = build_task_from_query(task_id,
@@ -161,29 +185,47 @@ def get_task_info(task_id):
     token = request.headers.get('token')
 
     if ENFORCE_JWT_AUTH and not verify(token):
-        return jsonify({'ok': False, 'error': 'operation is not permitted'})
+        return (
+            jsonify({'ok': False, 'error': 'operation is not permitted'}),
+            401
+        )
 
     task_data = storage_manager.get_task_data_with_verification(token, task_id)
 
     if not task_data:
-        return jsonify({'ok': False, 'error': 'No such task for this user'}), 403
+        return (
+            jsonify({'ok': False, 'error': 'No such task for this user'}),
+            403
+        )
 
-    return jsonify({'ok': True, 'status': task_data['status'], 'result': task_data.get('result')}), 201
+    return (
+        jsonify({'ok': True, 'status': task_data['status'], 'result': task_data.get('result')}),
+        201
+    )
 
 @app.route("/v1/tasks/", methods=["GET"])
 def get_tasks():
     token = request.headers.get('token')
 
     if ENFORCE_JWT_AUTH and not verify(token):
-        return jsonify({'ok': False, 'error': 'operation is not permitted'})
+        return (
+            jsonify({'ok': False, 'error': 'operation is not permitted'}),
+            401
+        )
 
     tasks = storage_manager.get_tasks(token)
 
     if not tasks:
-        return jsonify({'ok': False, 'error': 'No tasks for this user'})
+        return (
+            jsonify({'ok': False, 'error': 'No tasks for this user'}),
+            403
+        )
 
     tasks_to_return = {task_id: {'status': task_data['status'], 'result': task_data.get('result')} for task_id, task_data in tasks.items()}  
-    return jsonify({'ok': True, 'count': len(tasks), 'data': tasks_to_return})
+    return (
+        jsonify({'ok': True, 'count': len(tasks), 'data': tasks_to_return}),
+        200
+    )
 
 
 @sock.route("/")

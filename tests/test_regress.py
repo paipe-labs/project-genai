@@ -102,7 +102,7 @@ def test_post_images_generation_comfyui():
     response_json = response.json()
 
     logger.info(response_json)
-    assert response.status_code == 200
+    assert response.status_code == 202
     assert "result" in response_json
     assert "images" in response_json["result"]
 
@@ -140,7 +140,7 @@ def test_tasks_basic():
     """
 
     input_data = {
-        "token": "Token1",
+        "token": "Token",
         "comfyPipeline": {
             "pipelineData": pipelineData,
             "pipelineDependencies": {"images": images},
@@ -154,7 +154,7 @@ def test_tasks_basic():
     task_id = response_json['task_id']
     while True:
 
-        response = requests.get(TASKS_ENDPOINT + task_id, headers={'token': 'Token1'})
+        response = requests.get(TASKS_ENDPOINT + task_id, headers={'token': 'Token'})
         response_json = response.json()
         logger.info(response_json)
         if response_json['status'] == 'SUCCESS':
@@ -206,15 +206,24 @@ def test_tasks_acess():
     }
     response = requests.post(TASKS_ENDPOINT, json=input_data)
     response_json = response.json()
+    logger.info(response_json)
     task_id1 = response_json['task_id']
 
     input_data['token'] = 'Token2'
     response = requests.post(TASKS_ENDPOINT, json=input_data)
     response_json = response.json()
+    logger.info(response_json)
     task_id2 = response_json['task_id']
 
     response_valid = requests.get(TASKS_ENDPOINT + task_id1, headers={'token': 'Token1'})
+    logger.info(response_valid)
     assert response_valid.status_code == 201
     
     response_invalid = requests.get(TASKS_ENDPOINT + task_id2, headers={'token': 'Token1'})
+    logger.info(response_invalid)
     assert response_invalid.status_code == 403
+
+    response_count = requests.get(TASKS_ENDPOINT, headers={'token': 'Token1'})
+    response_json = response_count.json()
+    logger.info(response_json)
+    assert response_json['count'] == 1

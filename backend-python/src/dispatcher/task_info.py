@@ -17,7 +17,6 @@ class TaskStatus(Enum):
     TIMED_OUT = auto()
 
 class PublicTaskStatus(Enum):
-    FAILURE = auto()  # TODO implement logic of timeouts
     SUCCESS = auto()
     PENDING = auto()
 
