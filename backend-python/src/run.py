@@ -33,7 +33,7 @@ registered_providers = {}
 connections = {}  # task_id to future, remove after migration to newer API
 
 
-def check_data_and_state(data: dict, from_comfy_inf: bool = False) -> tuple: # TODO add error codes
+def check_data_and_state(data: dict, from_comfy_inf: bool = False) -> tuple:
     token = data.get('token')
     if ENFORCE_JWT_AUTH and not verify(token):
         return False, {'ok': False, 'error': 'operation is not permitted'}, 401
