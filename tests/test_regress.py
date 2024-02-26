@@ -156,6 +156,7 @@ def test_tasks_basic():
 
         response = requests.get(TASKS_ENDPOINT + task_id, headers={'token': 'Token1'})
         response_json = response.json()
+        logger.info(response_json)
         if response_json['status'] == 'SUCCESS':
             assert "result" in response_json
             assert "images" in response_json["result"]
