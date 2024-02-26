@@ -1,0 +1,116 @@
+{
+    "$ref": "#/definitions/TaskZod",
+    "definitions": {
+        "TaskZod": {
+            "type": "object",
+            "properties": {
+                "options": {
+                    "anyOf": [
+                        {
+                            "type": "object",
+                            "properties": {
+                                "prompt": {
+                                    "type": "string"
+                                },
+                                "model": {
+                                    "type": "string"
+                                },
+                                "size": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "width": {
+                                                    "type": "number"
+                                                },
+                                                "height": {
+                                                    "type": "number"
+                                                }
+                                            },
+                                            "required": [
+                                                "width",
+                                                "height"
+                                            ],
+                                            "additionalProperties": false
+                                        },
+                                        {
+                                            "type": "null"
+                                        }
+                                    ]
+                                },
+                                "steps": {
+                                    "type": [
+                                        "number",
+                                        "null"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "prompt",
+                                "model",
+                                "size",
+                                "steps"
+                            ],
+                            "additionalProperties": false
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "comfyOptions": {
+                    "anyOf": [
+                        {
+                            "type": "object",
+                            "properties": {
+                                "pipelineData": {
+                                    "type": "string"
+                                },
+                                "pipelineDependencies": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "images": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "images"
+                                            ],
+                                            "additionalProperties": false
+                                        },
+                                        {
+                                            "type": "null"
+                                        }
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "pipelineData",
+                                "pipelineDependencies"
+                            ],
+                            "additionalProperties": false
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "taskId": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "options",
+                "comfyOptions",
+                "taskId"
+            ],
+            "additionalProperties": false
+        }
+    },
+    "$schema": "http://json-schema.org/draft-07/schema#"
+}

@@ -6,17 +6,40 @@ on:
   pull_request:
 
 jobs:
-  tests:
-    name: tests
+  schema_tests:
+    name: schema_tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-            submodules: recursive
-            token: ${{ secrets.REPOSITORY_ACESS_KEY }}
+          submodules: recursive
+          token: ${{ secrets.REPOSITORY_ACESS_KEY }}
+
+      - uses: actions/setup-node@v3
+
+      - name: build
+        run: |
+          yarn --cwd client-node/client-package/ install
+          yarn --cwd client-node/client-package/ build
+
+      - name: validate schema
+        run: |
+          diff <(jq --sort-keys . backend-python/src/task_schema.json) <(jq --sort-keys . <(npx ts-node client-node/client-package/public/buildSchema.js -o task))
+          diff <(jq --sort-keys . backend-python/src/task_result_schema.json) <(jq --sort-keys . <(npx ts-node client-node/client-package/public/buildSchema.js -o taskResult))
+
+  e2e_tests:
+    name: e2e_tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.REPOSITORY_ACESS_KEY }}
+
       - name: build docker images
         run: docker compose build
-      - name: run containers and tests
+
+      - name: run containers and e2e_tests
         run: |
           docker compose up -d server node
           docker compose run tests
@@ -24,9 +47,11 @@ jobs:
       - name: show server logs
         if: always()
         run: docker compose logs --no-log-prefix server
+
       - name: show node logs
         if: always()
         run: docker compose logs --no-log-prefix node
+
       - name: stop docker compose
         if: always()
         run: docker compose down

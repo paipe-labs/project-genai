@@ -8,8 +8,10 @@ services:
       - "8080:8080"
     hostname: server
     environment:
-      ENFORCE_JWT_AUTH: false
       DEBUG: true
+      ENFORCE_JWT_AUTH: false
+      TASK_RESULT_SCHEMA_PATH: src/task_result_schema.json
+      TASK_SCHEMA_PATH: src/task_schema.json
     # TODO: pass self url as command line argument
 
   node:
