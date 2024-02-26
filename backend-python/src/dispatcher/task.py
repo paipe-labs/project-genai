@@ -133,4 +133,14 @@ def build_task_from_query(task_id: str, **kwargs) -> Task:
         })
     )
 
+    def on_failed():
+        task.set_status(TaskStatus.ABORTED)
+
+    def on_completed(result: TaskResult):
+        task.set_status(TaskStatus.COMPLETED)
+        return jsonify({'ok': True, 'result': result})
+
+    task.set_on_failed(on_failed)
+    task.set_on_completed(on_completed)
+
     return task

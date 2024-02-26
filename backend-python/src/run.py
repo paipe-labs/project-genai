@@ -3,7 +3,7 @@ from dispatcher.dispatcher import Dispatcher
 from dispatcher.entry_queue import EntryQueue
 from dispatcher.meta_info import PrivateMetaInfo, PublicMetaInfo
 from dispatcher.provider import Provider
-from dispatcher.task import TaskStatus, build_task_from_query
+from dispatcher.task import build_task_from_query
 from dispatcher.task_info import TaskResult
 
 from storage import StorageManager
@@ -15,8 +15,6 @@ from gevent import monkey
 from gevent.pywsgi import WSGIServer
 from flask import Flask, request, jsonify
 from flask_sock import Sock
-
-from dispatcher.util.logger import logger
 
 import json
 import uuid
@@ -84,16 +82,6 @@ def add_comfy_task():
     token = data.get('token')
     storage_manager.add_task(token, task_id, task)
 
-    def on_failed():
-        task.set_status(TaskStatus.ABORTED)
-
-    def on_completed(result: TaskResult):
-        task.set_status(TaskStatus.COMPLETED)
-        return jsonify({'ok': True, 'result': result})
-
-    task.set_on_failed(on_failed)
-    task.set_on_completed(on_completed)
-
     entry_queue.add_task(task, 0)
 
     return (
@@ -128,16 +116,6 @@ def generate_image():
     token = data.get('token')
     storage_manager.add_task(token, task_id, task)
 
-    def on_failed():
-        task.set_status(TaskStatus.ABORTED)
-
-    def on_completed(result: TaskResult):
-        task.set_status(TaskStatus.COMPLETED)
-        return jsonify({'ok': True, 'result': result})
-
-    task.set_on_failed(on_failed)
-    task.set_on_completed(on_completed)
-
     entry_queue.add_task(task, 0)
 
     future = Future()
@@ -160,25 +138,14 @@ def add_task():
         return jsonify(error_msg)
 
     task_id = str(uuid.uuid4())
-    task = build_task_from_query(task_id, {
-        'max_cost': data.get('max_cost', 15),
-        'time_to_money_ratio': data.get('time_to_money_ratio', 1),
-        'standard_pipeline': data.get('standardPipeline'),
-        'comfy_pipeline': data.get('comfyPipeline'),
-    })
+    task = build_task_from_query(task_id,
+        max_cost=data.get('max_cost', 15),
+        time_to_money_ratio=data.get('time_to_money_ratio', 1),
+        standard_pipeline=data.get('standardPipeline'),
+        comfy_pipeline=data.get('comfyPipeline'))
 
     token = data.get('token')
     storage_manager.add_task(token, task_id, task)
-
-    def on_failed():
-        task.set_status(TaskStatus.ABORTED)
-
-    def on_completed(result: TaskResult):
-        task.set_status(TaskStatus.COMPLETED)
-        return jsonify({'ok': True, 'result': result})
-
-    task.set_on_failed(on_failed)
-    task.set_on_completed(on_completed)
 
     entry_queue.add_task(task, 0)
 
@@ -189,24 +156,24 @@ def add_task():
         201,
     ) 
 
-@app.route("/v1/tasks/{task_id}", methods=["GET"])
+@app.route("/v1/tasks/<task_id>", methods=["GET"])
 def get_task_info(task_id):
-    data = request.get_json()
-    token = data.get('token')
+    token = request.headers.get('token')
+
     if ENFORCE_JWT_AUTH and not verify(token):
         return jsonify({'ok': False, 'error': 'operation is not permitted'})
 
     task_data = storage_manager.get_task_data_with_verification(token, task_id)
 
     if not task_data:
-        return jsonify({'ok': False, 'error': 'No such task for this user'})
+        return jsonify({'ok': False, 'error': 'No such task for this user'}), 403
 
-    return jsonify({'ok': True, 'status': task_data['status'], 'result': task_data.get('result')})
+    return jsonify({'ok': True, 'status': task_data['status'], 'result': task_data.get('result')}), 201
 
 @app.route("/v1/tasks/", methods=["GET"])
 def get_tasks():
-    data = request.get_json()
-    token = data.get('token')
+    token = request.headers.get('token')
+
     if ENFORCE_JWT_AUTH and not verify(token):
         return jsonify({'ok': False, 'error': 'operation is not permitted'})
 
@@ -215,7 +182,8 @@ def get_tasks():
     if not tasks:
         return jsonify({'ok': False, 'error': 'No tasks for this user'})
 
-    return jsonify({'ok': True, 'count': len(tasks), 'data': tasks})
+    tasks_to_return = {task_id: {'status': task_data['status'], 'result': task_data.get('result')} for task_id, task_data in tasks.items()}  
+    return jsonify({'ok': True, 'count': len(tasks), 'data': tasks_to_return})
 
 
 @sock.route("/")
@@ -252,15 +220,11 @@ def websocket_connection(ws):
                 results_url = data_json.get("resultsUrl")
                 id_ = registered_providers[ws]
                 provider = dispatcher.providers_map.get(id_)
-
-                print(f'TASK_ID{task_id}')
                 
                 if provider:
                     task_data = storage_manager.get_task_data(task_id)
-                    print(f'TASK_DATA {task_data}')
                     if task_data:
                         task = task_data.get('task')
-                        print(f'TASK_DATA {task}')
                         if task:
                             task_result = TaskResult(results_url)
                             provider.network_connection.on_task_completed(task, task_result)
