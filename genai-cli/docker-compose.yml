@@ -1,0 +1,16 @@
+version: "3"
+
+services:
+  cli:
+    build:
+      context: .
+      dockerfile: cli.dockerfile
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${CLI_NODES_DATA_FILE}:${NODES_DATA_FILE}
+
+    environment:
+      DEFAULT_DOCKER_IMAGE: ${DEFAULT_DOCKER_IMAGE?DEFAULT_DOCKER_IMAGE not set}
+      NODES_DATA_FILE: ${NODES_DATA_FILE?NODES_DATA_FILE not set}
+

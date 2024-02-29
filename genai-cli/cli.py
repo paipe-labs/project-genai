@@ -11,7 +11,7 @@ import docker
 import pandas as pd
 
 
-NODES_DATA_PATH = os.environ.get("NODES_DATA_PATH", "")
+NODES_DATA_FILE = os.environ.get("NODES_DATA_FILE", "")
 DEFAULT_DOCKER_IMAGE = os.environ.get("DEFAULT_DOCKER_IMAGE", "")
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
@@ -44,8 +44,8 @@ def create_node(platform: str, backend: str, image=DEFAULT_DOCKER_IMAGE, vastai_
             )
             return
 
+        # TODO: pass backend  --env '--backend=backend'
         try:
-            # TODO: pass backend  --env '--backend=backend'
             result = json.loads(
                 subprocess.run(
                     [
@@ -75,7 +75,7 @@ def create_node(platform: str, backend: str, image=DEFAULT_DOCKER_IMAGE, vastai_
         rprint("[red]Platform type not supported: [/red]{p}".format(p=platform))
         return
 
-    with open(NODES_DATA_PATH, "a", newline="") as data_file:
+    with open(NODES_DATA_FILE, "a", newline="") as data_file:
         writer = csv.writer(
             data_file, delimiter=";", quotechar="|", quoting=csv.QUOTE_MINIMAL
         )
@@ -87,10 +87,10 @@ def create_node(platform: str, backend: str, image=DEFAULT_DOCKER_IMAGE, vastai_
 
 @app.command(help="Delete existing running node")
 def delete_node(node_id: str):
-    nodes_df = pd.read_csv(NODES_DATA_PATH, sep=";")
+    nodes_df = pd.read_csv(NODES_DATA_FILE, sep=";")
     node_row = nodes_df[nodes_df["id"] == node_id].iloc[0].values.tolist()
     nodes_df = nodes_df[nodes_df["id"] != node_id]
-    nodes_df.to_csv(NODES_DATA_PATH, index=False, sep=";")
+    nodes_df.to_csv(NODES_DATA_FILE, index=False, sep=";")
 
     if node_row[1] == "local":
         try:
@@ -130,15 +130,15 @@ def delete_node(node_id: str):
 
 @app.command("list", help="List currently running nodes")
 def list_nodes():
-    with open(NODES_DATA_PATH, "r") as nodes_data:
+    with open(NODES_DATA_FILE, "r") as nodes_data:
         nodes_table = prettytable.from_csv(nodes_data)
     print(nodes_table)
 
 
 if __name__ == "__main__":
-    if "NODES_DATA_PATH" not in os.environ:
+    if "NODES_DATA_FILE" not in os.environ:
         rprint(
-            "[red]Missing env variable [/red]'NODES_DATA_PATH'[red]: file path for persistent storage of node ids.[/red]"
+            "[red]Missing env variable [/red]'NODES_DATA_FILE'[red]: file path for persistent storage of node ids.[/red]"
         )
         sys.exit(1)
     if "CONTAINER_API_KEY" not in os.environ:
@@ -148,12 +148,11 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # Initialising the file to store nodes in
-    if not os.path.exists(NODES_DATA_PATH):
-        with open(NODES_DATA_PATH, "w+") as nodes_file:
+    if not os.path.exists(NODES_DATA_FILE):
+        with open(NODES_DATA_FILE, "w+") as nodes_file:
             writer = csv.writer(
                 nodes_file, delimiter=";", quotechar="|", quoting=csv.QUOTE_MINIMAL
             )
             writer.writerow(["id", "platform", "backend", "image"])
 
     app()
-
