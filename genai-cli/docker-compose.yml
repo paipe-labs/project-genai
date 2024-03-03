@@ -5,12 +5,14 @@ services:
     build:
       context: .
       dockerfile: cli.dockerfile
+      args:
+        VASTAI_API_KEY: ${VASTAI_API_KEY}
 
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${CLI_NODES_DATA_FILE}:${NODES_DATA_FILE}
+      - ${CLI_NODES_DATA_FILE?CLI_NODES_DATA_FILE not set}:${NODES_DATA_FILE:-nodes.csv}
 
     environment:
-      DEFAULT_DOCKER_IMAGE: ${DEFAULT_DOCKER_IMAGE?DEFAULT_DOCKER_IMAGE not set}
-      NODES_DATA_FILE: ${NODES_DATA_FILE?NODES_DATA_FILE not set}
+      DEFAULT_DOCKER_IMAGE: ${DEFAULT_DOCKER_IMAGE:-vvauijij/genai-node-comfyui}
+      NODES_DATA_FILE: ${NODES_DATA_FILE:-nodes.csv}
 

@@ -12,14 +12,29 @@ import pandas as pd
 
 
 NODES_DATA_FILE = os.environ.get("NODES_DATA_FILE", "")
+
 DEFAULT_DOCKER_IMAGE = os.environ.get("DEFAULT_DOCKER_IMAGE", "")
+DEFAULT_PROV_SCRIPT = os.environ.get(
+    "PROVISIONING_SCRIPT",
+    "https://raw.githubusercontent.com/ai-dock/comfyui/main/config/provisioning/default.sh",
+)
+
+VASTAI_CREATE_CMD = """vastai create instance {id} --image {image} --env '-e BACKEND_SERVER={backend} -e PROVISIONING_SCRIPT="{prov_script}' --onstart-cmd "env | grep _ >> /etc/environment; /opt/ai-dock/bin/init.sh & npx ts-node public/run.js -b ${{BACKEND_SERVER}} -t comfyUI -i ${{DIRECT_ADDRESS}}:${{COMFYUI_PORT}};"
+"""
+
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 docker_client = docker.from_env()
 
 
 @app.command(help="Create and run a node")
-def create_node(platform: str, backend: str, image=DEFAULT_DOCKER_IMAGE, vastai_iid=None):
+def create_node(
+    platform: str,
+    backend: str,
+    image=DEFAULT_DOCKER_IMAGE,
+    prov_script=DEFAULT_PROV_SCRIPT,
+    vastai_iid=None,
+):
     if image == "":
         rprint("[red]No image instance passed and no default docker image set.[/red]")
         return
@@ -28,8 +43,12 @@ def create_node(platform: str, backend: str, image=DEFAULT_DOCKER_IMAGE, vastai_
         try:
             container = docker_client.containers.run(
                 image=image,
+                command=["--backend {b}".format(b=backend)],
+                environment=[
+                    "BACKEND_SERVER={b}".format(b=backend),
+                    "PROVISIONING_SCRIPT={script}".format(script=prov_script),
+                ],
                 detach=True,
-                environment=["--backend={b}".format(b=backend)],
             )
         except Exception as err:
             rprint(err)
@@ -40,21 +59,19 @@ def create_node(platform: str, backend: str, image=DEFAULT_DOCKER_IMAGE, vastai_
         if vastai_iid is None:
             rprint(
                 "[red]Creating node in vast.ai with no known instance ID is not supported.",
-                "Choose an instance via 'search offers' command and pass it as an argument '--vastai_iid'.[/red]",
+                "Choose an instance via 'search offers' command and pass its ID as an argument '--vastai_iid'.[/red]",
             )
             return
 
-        # TODO: pass backend  --env '--backend=backend'
         try:
             result = json.loads(
                 subprocess.run(
-                    [
-                        "vastai",
-                        "create",
-                        "instance",
-                        vastai_iid,
-                        "--image={img}".format(img=image),
-                    ],
+                    VASTAI_CREATE_CMD.format(
+                        id=vastai_iid,
+                        image=image,
+                        backend=backend,
+                        prov_script=prov_script,
+                    ).split(),
                     check=True,
                     capture_output=True,
                 ).stdout
@@ -68,6 +85,8 @@ def create_node(platform: str, backend: str, image=DEFAULT_DOCKER_IMAGE, vastai_
                     id=vastai_iid
                 )
             )
+
+            # TODO: print vastai answer
             return
         node_id = result["new_contract"]
 
@@ -139,11 +158,6 @@ if __name__ == "__main__":
     if "NODES_DATA_FILE" not in os.environ:
         rprint(
             "[red]Missing env variable [/red]'NODES_DATA_FILE'[red]: file path for persistent storage of node ids.[/red]"
-        )
-        sys.exit(1)
-    if "CONTAINER_API_KEY" not in os.environ:
-        rprint(
-            "[red]Missing env variable [/red]'CONTAINER_API_KEY'[red] needed to access vast.ai cli.[/red]"
         )
         sys.exit(1)
 
