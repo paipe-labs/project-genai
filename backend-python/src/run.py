@@ -1,4 +1,6 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
+
 import uuid
 from dispatcher.provider import Provider
 from dispatcher.meta_info import PrivateMetaInfo, PublicMetaInfo
@@ -24,6 +26,7 @@ from concurrent.futures import Future
 monkey.patch_all()
 
 app = Flask(__name__)
+CORS(app)
 sock = Sock(app)
 
 entryQueue = EntryQueue()
