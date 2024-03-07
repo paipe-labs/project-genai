@@ -1,3 +1,5 @@
+from gevent.pywsgi import WSGIServer
+from verification import verify
 from constants.env import ENFORCE_JWT_AUTH, HTTP_WS_PORT
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.entry_queue import EntryQueue
@@ -14,6 +16,7 @@ from concurrent.futures import Future
 from gevent import monkey
 from gevent.pywsgi import WSGIServer
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from flask_sock import Sock
 
 import json
@@ -22,6 +25,7 @@ import uuid
 monkey.patch_all()
 
 app = Flask(__name__)
+CORS(app)
 sock = Sock(app)
 
 entry_queue = EntryQueue()
