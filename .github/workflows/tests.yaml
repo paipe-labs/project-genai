@@ -20,7 +20,7 @@ jobs:
         run: |
           docker compose up -d server node
           docker compose run tests
-          docker compose run unit-tests
+          docker compose run unit_tests
       - name: show server logs
         if: always()
         run: docker compose logs --no-log-prefix server
