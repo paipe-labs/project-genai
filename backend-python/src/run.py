@@ -1,5 +1,3 @@
-from gevent.pywsgi import WSGIServer
-from verification import verify
 from constants.env import ENFORCE_JWT_AUTH, HTTP_WS_PORT
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.entry_queue import EntryQueue
@@ -7,8 +5,9 @@ from dispatcher.meta_info import PrivateMetaInfo, PublicMetaInfo
 from dispatcher.provider import Provider
 from dispatcher.task import build_task_from_query
 from dispatcher.task_info import TaskResult
+from utils.query_check_result import QueryValidationResult
 
-from storage import StorageManager
+from storage import StorageManager, UsersStorage
 from verification import verify
 from ws_connection import WSConnection
 
@@ -31,41 +30,55 @@ sock = Sock(app)
 entry_queue = EntryQueue()
 dispatcher = Dispatcher(entry_queue)
 storage_manager = StorageManager()
+users_storage = UsersStorage()
 
 registered_providers = {}
 
-connections = {}  # task_id to future, remove after migration to newer API
+connections = {}
 
-
-def check_data_and_state(data: dict, from_comfy_inf: bool = False) -> tuple:
+def check_data_and_state(data: dict, from_comfy_inf: bool = False) -> QueryValidationResult:
     token = data.get('token')
     if ENFORCE_JWT_AUTH and not verify(token):
-        return False, {'ok': False, 'error': 'operation is not permitted'}, 401
+        return QueryValidationResult(is_ok=False,
+                                     error_data={'ok': False, 'error': 'operation is not permitted'},
+                                     error_code=401)
     
     if len(registered_providers) == 0:
-        return False, {'ok': False, 'error': 'no nodes available'}, 403
-    
+        return QueryValidationResult(is_ok=False,
+                                     error_data={'ok': False, 'error': 'no nodes available'},
+                                     error_code=403)
+        
     if from_comfy_inf:
         pipeline_data = data.get('pipelineData')
         if not pipeline_data:
-            return False, {'ok': False, 'error': 'image pipeline is not specified'}, 404
+            return QueryValidationResult(is_ok=False,
+                                         error_data={'ok': False, 'error': 'image pipeline is not specified'},
+                                         error_code=404)
     else:
         comfy_pipeline = data.get('comfyPipeline')
         standard_pipeline = data.get('standardPipeline')
         if not standard_pipeline and not comfy_pipeline:
-            return False, {'ok': False, 'error': 'image pipeline is not specified'}, 404
+            return QueryValidationResult(is_ok=False,
+                                         error_data={'ok': False, 'error': 'image pipeline is not specified'},
+                                         error_code=404)
 
         if standard_pipeline:
             prompt = standard_pipeline.get('prompt')
             if not prompt:
-                return False, {'ok': False, 'error': 'prompt cannot be null or undefined'}, 404
+                return QueryValidationResult(is_ok=False,
+                                             error_data={'ok': False, 'error': 'prompt cannot be null or undefined'},
+                                             error_code=404) 
             if len(prompt) == 0:
-                return False, {'ok': False, 'error': 'prompt length cannot be 0'}, 404
+                return QueryValidationResult(is_ok=False,
+                                             error_data={'ok': False, 'error': 'prompt length cannot be 0'},
+                                             error_code=404)
         if comfy_pipeline:
             pipeline_data = comfy_pipeline.get('pipelineData')
             if not pipeline_data:
-                return False, {'ok': False, 'error': 'pipelineData cannot be null or undefined'}, 404
-    return True, None, None
+                return QueryValidationResult(is_ok=False,
+                                             error_data={'ok': False, 'error': 'pipelineData cannot be null or undefined'},
+                                             error_code=404)
+    return QueryValidationResult(is_ok=True)
 
 
 @app.route('/v1/client/hello/', methods=['POST'])
@@ -79,18 +92,18 @@ def hello():
 @app.route('/v1/inference/comfyPipeline', methods=['POST'])
 def add_comfy_task():
     data = request.get_json()
-    success, error_msg, error_code = check_data_and_state(data, True)
-    if not success:
+    query_validation_res = check_data_and_state(data, True)
+    if not query_validation_res.is_ok:
         return (
-            jsonify(error_msg),
-            error_code
+            jsonify(query_validation_res.error_data),
+            query_validation_res.error_code
         )
 
     task_id = str(uuid.uuid4())
     task = build_task_from_query(task_id, max_cost=data.get('max_cost', 15), time_to_money_ratio=data.get('time_to_money_ratio', 1), comfy_pipeline={'pipelineData': data.get('pipelineData'), 'pipelineDependencies': data.get('pipelineDependencies')})
 
     token = data.get('token')
-    storage_manager.add_task(token, task_id, task)
+    storage_manager.add_task(users_storage.get_user_id(token), task_id, task)
 
     entry_queue.add_task(task, 0)
 
@@ -118,11 +131,11 @@ def health():
 @app.route("/v1/images/generation/", methods=["POST"])
 def generate_image():
     data = request.get_json()
-    success, error_msg, error_code = check_data_and_state(data)
-    if not success:
+    query_validation_res = check_data_and_state(data, False)
+    if not query_validation_res.is_ok:
         return (
-            jsonify(error_msg),
-            error_code
+            jsonify(query_validation_res.error_data),
+            query_validation_res.error_code
         )
 
     task_id = str(uuid.uuid4())
@@ -133,7 +146,7 @@ def generate_image():
                                  comfy_pipeline=data.get('comfyPipeline'))
 
     token = data.get('token')
-    storage_manager.add_task(token, task_id, task)
+    storage_manager.add_task(users_storage.get_user_id(token), task_id, task)
 
     entry_queue.add_task(task, 0)
 
@@ -158,11 +171,11 @@ def generate_image():
 @app.route("/v1/tasks/", methods=["POST"])
 def add_task():
     data = request.get_json()
-    success, error_msg, error_code = check_data_and_state(data)
-    if not success:
+    query_validation_res = check_data_and_state(data, False)
+    if not query_validation_res.is_ok:
         return (
-            jsonify(error_msg),
-            error_code
+            jsonify(query_validation_res.error_data),
+            query_validation_res.error_code
         )
 
     task_id = str(uuid.uuid4())
@@ -173,7 +186,7 @@ def add_task():
         comfy_pipeline=data.get('comfyPipeline'))
 
     token = data.get('token')
-    storage_manager.add_task(token, task_id, task)
+    storage_manager.add_task(users_storage.get_user_id(token), task_id, task)
 
     entry_queue.add_task(task, 0)
 
@@ -194,7 +207,7 @@ def get_task_info(task_id):
             401
         )
 
-    task_data = storage_manager.get_task_data_with_verification(token, task_id)
+    task_data = storage_manager.get_task_data_with_verification(users_storage.get_user_id(token), task_id)
 
     if not task_data:
         return (
@@ -217,7 +230,7 @@ def get_tasks():
             401
         )
 
-    tasks = storage_manager.get_tasks(token)
+    tasks = storage_manager.get_tasks(users_storage.get_user_id(token))
 
     if not tasks:
         return (
