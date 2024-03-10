@@ -29,3 +29,8 @@ services:
     depends_on:
       - server
       - node
+  
+  unit_tests:
+    build:
+      context: backend-python
+      dockerfile: unit_tests.dockerfile
