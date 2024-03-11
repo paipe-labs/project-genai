@@ -3,7 +3,7 @@ import typing
 import os
 import csv
 import sys
-import json
+import re
 import prettytable
 from rich import print as rprint
 import subprocess
@@ -12,15 +12,10 @@ import pandas as pd
 
 
 NODES_DATA_FILE = os.environ.get("NODES_DATA_FILE", "")
-
 DEFAULT_DOCKER_IMAGE = os.environ.get("DEFAULT_DOCKER_IMAGE", "")
-DEFAULT_PROV_SCRIPT = os.environ.get(
-    "PROVISIONING_SCRIPT",
-    "https://raw.githubusercontent.com/ai-dock/comfyui/main/config/provisioning/default.sh",
-)
+DEFAULT_PROV_SCRIPT = os.environ.get("DEFAULT_PROV_SCRIPT", "")
 
-VASTAI_CREATE_CMD = """vastai create instance {id} --image {image} --env '-e BACKEND_SERVER={backend} -e PROVISIONING_SCRIPT="{prov_script}' --onstart-cmd "env | grep _ >> /etc/environment; /opt/ai-dock/bin/init.sh & npx ts-node public/run.js -b ${{BACKEND_SERVER}} -t comfyUI -i ${{DIRECT_ADDRESS}}:${{COMFYUI_PORT}};"
-"""
+VASTAI_CREATE_CMD = """vastai create instance {id} --image {image} --env '-e BACKEND_SERVER={backend} -e PROVISIONING_SCRIPT="{prov_script}" ' --onstart-cmd 'env | grep _ >> /etc/environment; /opt/ai-dock/bin/init.sh & npx ts-node public/run.js -b ${{BACKEND_SERVER}} -t comfyUI -i ${{DIRECT_ADDRESS}}:${{COMFYUI_PORT}};'"""
 
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
@@ -36,59 +31,64 @@ def create_node(
     vastai_iid=None,
 ):
     if image == "":
-        rprint("[red]No image instance passed and no default docker image set.[/red]")
+        rprint("[red]No image instance passed and DEFAULT_DOCKER_IMAGE not set.[/red]")
+        return
+    if prov_script == "":
+        rprint("[red]DEFAULT_PROV_SCRIPT environment variable not set.[/red]")
         return
 
     if platform == "local":
         try:
             container = docker_client.containers.run(
                 image=image,
-                command=["--backend {b}".format(b=backend)],
                 environment=[
                     "BACKEND_SERVER={b}".format(b=backend),
                     "PROVISIONING_SCRIPT={script}".format(script=prov_script),
                 ],
                 detach=True,
             )
+            node_id = container.short_id
         except Exception as err:
             rprint(err)
             return
 
-        node_id = container.short_id
     elif platform == "vastai":
         if vastai_iid is None:
             rprint(
                 "[red]Creating node in vast.ai with no known instance ID is not supported.",
-                "Choose an instance via 'search offers' command and pass its ID as an argument '--vastai_iid'.[/red]",
+                "Choose an instance via 'vastai search offers' command and pass its ID as an argument '--vastai-iid'[/red]",
             )
             return
 
         try:
-            result = json.loads(
-                subprocess.run(
-                    VASTAI_CREATE_CMD.format(
-                        id=vastai_iid,
-                        image=image,
-                        backend=backend,
-                        prov_script=prov_script,
-                    ).split(),
-                    check=True,
-                    capture_output=True,
-                ).stdout
-            )
-        except subprocess.CalledProcessError as err:
-            rprint(err)
+            result = subprocess.run(
+                VASTAI_CREATE_CMD.format(
+                    id=vastai_iid, image=image, backend=backend, prov_script=prov_script
+                ),
+                check=True,
+                capture_output=True,
+                shell=True,
+            ).stdout.decode()
 
-        if result["success"] is False:
-            rprint(
-                "[red]Creation failed. Instance id used:[/red] {id}".format(
-                    id=vastai_iid
+            nums = re.findall(r"\d+", result)
+            if result.startswith("Started") and len(nums) == 1:
+                node_id = nums[0]
+            else:
+                rprint(
+                    "[red]Creation failed. Instance id used:[/red] {id}\n".format(
+                        id=vastai_iid
+                    ),
+                    result,
                 )
+                return
+        except Exception as err:
+            rprint(
+                "[red]Creation failed. Instance id used:[/red] {id}\n".format(
+                    id=vastai_iid
+                ),
+                err,
             )
-
-            # TODO: print vastai answer
             return
-        node_id = result["new_contract"]
 
     else:
         rprint("[red]Platform type not supported: [/red]{p}".format(p=platform))
@@ -96,46 +96,57 @@ def create_node(
 
     with open(NODES_DATA_FILE, "a", newline="") as data_file:
         writer = csv.writer(
-            data_file, delimiter=";", quotechar="|", quoting=csv.QUOTE_MINIMAL
+            data_file, delimiter=",", quotechar="|", quoting=csv.QUOTE_MINIMAL
         )
 
         writer.writerow([node_id, platform, backend, image])
 
-    rprint("[green]Created node id:[/green]\n{id}.".format(id=node_id))
+    rprint("[green]Created node id:[/green]\n{id}".format(id=node_id))
 
 
 @app.command(help="Delete existing running node")
 def delete_node(node_id: str):
-    nodes_df = pd.read_csv(NODES_DATA_FILE, sep=";")
-    node_row = nodes_df[nodes_df["id"] == node_id].iloc[0].values.tolist()
-    nodes_df = nodes_df[nodes_df["id"] != node_id]
-    nodes_df.to_csv(NODES_DATA_FILE, index=False, sep=";")
+    nodes_df = pd.read_csv(NODES_DATA_FILE, sep=",", dtype={"id": "string"})
+    nodes_row = nodes_df[nodes_df["id"] == node_id]
+    if nodes_row.shape[0] == 0:
+        rprint(
+            "[red]Unable to delete node {id}: no data found in file. Has it been created through the cli tool?[/red]".format(
+                id=node_id
+            )
+        )
+        return
 
+    node_row = nodes_row.iloc[0].values.tolist()
     if node_row[1] == "local":
         try:
             container = docker_client.containers.get(node_id)
             container.kill()
         except Exception as err:
-            rprint(err)
+            rprint("[red]Deletion failed[/red]\n", err)
+            return
 
     elif node_row[1] == "vastai":
         try:
-            result = json.loads(
-                subprocess.run(
-                    ["vastai", "destroy", "instance", node_id],
-                    check=True,
-                    capture_output=True,
-                ).stdout
-            )
-        except subprocess.CalledProcessError as err:
-            rprint(err)
+            result = subprocess.run(
+                ["vastai", "destroy", "instance", node_id],
+                check=True,
+                capture_output=True,
+            ).stdout.decode()
 
-        # TODO process output if any, else check exit status
+            if not result.startswith("destroying instance"):
+                rprint("[red]Deletion failed[/red]\n", result)
+                return
+
+        except Exception as err:
+            rprint("[red]Deletion failed[/red]\n", err)
+            return
     else:
-        rprint("[red]Platform not supported: {p}.[/red]".format(p=node_row[1]))
+        rprint("[red]Platform not supported: {p}[/red]".format(p=node_row[1]))
         return
 
-    rprint("[green]Deleted node id:\n{id}.[/green]".format(id=node_id))
+    nodes_df = nodes_df[nodes_df["id"] != node_id]
+    nodes_df.to_csv(NODES_DATA_FILE, index=False, sep=",")
+    rprint("[green]Deleted node id:\n{id}[/green]".format(id=node_id))
 
 
 # @app.command()
@@ -161,11 +172,11 @@ if __name__ == "__main__":
         )
         sys.exit(1)
 
-    # Initialising the file to store nodes in
-    if not os.path.exists(NODES_DATA_FILE):
+    # Initialising the file to store nodes data in
+    if os.stat(NODES_DATA_FILE).st_size == 0:
         with open(NODES_DATA_FILE, "w+") as nodes_file:
             writer = csv.writer(
-                nodes_file, delimiter=";", quotechar="|", quoting=csv.QUOTE_MINIMAL
+                nodes_file, delimiter=",", quotechar="|", quoting=csv.QUOTE_MINIMAL
             )
             writer.writerow(["id", "platform", "backend", "image"])
 
