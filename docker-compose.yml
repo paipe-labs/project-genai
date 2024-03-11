@@ -31,6 +31,8 @@ services:
       - node
   
   unit_tests:
+    image: genai-server
     build:
       context: backend-python
-      dockerfile: unit_tests.dockerfile
+      dockerfile: backend.dockerfile
+    entrypoint: ["pytest"]
