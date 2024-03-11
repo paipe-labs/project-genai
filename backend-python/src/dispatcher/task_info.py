@@ -16,6 +16,9 @@ class TaskStatus(Enum):
     COMPLETED = auto()
     TIMED_OUT = auto()
 
+class PublicTaskStatus(Enum):
+    SUCCESS = auto()
+    PENDING = auto()
 
 @dataclass
 class ComfyPipelineOptions:

@@ -1,16 +1,20 @@
 from dispatcher.util.logger import logger
+
+from datetime import datetime
+from flask import jsonify
 from dispatcher.task_info import (
+    AssignedToProviderPayload,
+    ComfyPipelineOptions,
+    TaskOptions,
     TaskStatus,
     TaskInfo,
     TaskResult,
     TaskStatusPayload,
-    AssignedToProviderPayload,
+    StandardPipelineOptions,
     task_status_payload_to_string,
 )
 
 import typing
-from datetime import datetime
-
 
 class TaskLog(typing.NamedTuple):
     date: datetime
@@ -108,3 +112,35 @@ class Task:
             logger.error("on_failed callback not set in task {id}".format(self.id))
         else:
             self._on_failed()
+
+def build_task_from_query(task_id: str, **kwargs) -> Task:
+    max_cost = kwargs.get('max_cost')
+    time_to_money_ratio = kwargs.get('time_to_money_ratio')
+    standard_pipeline = kwargs.get('standard_pipeline')
+    comfy_pipeline = kwargs.get('comfy_pipeline')
+    task = Task(
+        TaskInfo(**{
+            'id': task_id,
+            'max_cost': max_cost,
+            'time_to_money_ratio': time_to_money_ratio,
+            'task_options': TaskOptions(**{
+                'standard_pipeline': StandardPipelineOptions(**standard_pipeline) if standard_pipeline else None,
+                'comfy_pipeline': ComfyPipelineOptions(**{
+                    'pipeline_data': comfy_pipeline.get('pipelineData'),
+                    'pipeline_dependencies': comfy_pipeline.get('pipelineDependencies'),
+                }) if comfy_pipeline else None
+            })
+        })
+    )
+
+    def on_failed():
+        task.set_status(TaskStatus.ABORTED)
+
+    def on_completed(result: TaskResult):
+        task.set_status(TaskStatus.COMPLETED)
+        return jsonify({'ok': True, 'result': result})
+
+    task.set_on_failed(on_failed)
+    task.set_on_completed(on_completed)
+
+    return task

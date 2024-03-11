@@ -29,3 +29,10 @@ services:
     depends_on:
       - server
       - node
+  
+  unit_tests:
+    image: genai-server
+    build:
+      context: backend-python
+      dockerfile: backend.dockerfile
+    entrypoint: ["pytest"]

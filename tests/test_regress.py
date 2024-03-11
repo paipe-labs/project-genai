@@ -8,7 +8,7 @@ from loguru import logger
 SERVER_URL = os.getenv("SERVER_URL")
 CLIENT_HELLO_ENDPOINT = SERVER_URL + "/v1/client/hello/"
 IMAGES_GENERATIONS_ENDPOINT = SERVER_URL + "/v1/images/generation/"
-
+TASKS_ENDPOINT = SERVER_URL + "/v1/tasks/"
 
 def wait_for_http(url: str):
     retries = 10
@@ -102,6 +102,128 @@ def test_post_images_generation_comfyui():
     response_json = response.json()
 
     logger.info(response_json)
-    assert response.status_code == 200
+    assert response.status_code == 202
     assert "result" in response_json
     assert "images" in response_json["result"]
+
+def test_tasks_basic():
+    wait_for_http(TASKS_ENDPOINT)
+
+    # TODO: proper jwt token check
+
+    pipelineData = """
+    {
+        "9": {
+            "inputs": {
+                "filename_prefix": "ComfyUI",
+                "images": [
+                    "10",
+                    0
+                ]
+            },
+            "class_type": "SaveImage"
+        },
+        "10": {
+            "inputs": {
+                "image": "image.png",
+                "upload": "image"
+            },
+            "class_type": "LoadImage"
+        }
+    }
+    """
+
+    images = """
+    {
+        "image.png": "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAIAQMAAAD+wSzIAAAABlBMVEX///+/v7+jQ3Y5AAAADklEQVQI12P4AIX8EAgALgAD/aNpbtEAAAAASUVORK5CYII"
+    }
+    """
+
+    input_data = {
+        "token": "Token",
+        "comfyPipeline": {
+            "pipelineData": pipelineData,
+            "pipelineDependencies": {"images": images},
+        },
+    }
+    response = requests.post(TASKS_ENDPOINT, json=input_data)
+    response_json = response.json()
+
+    logger.info(response_json)
+    assert response.status_code == 201
+    task_id = response_json['task_id']
+    while True:
+
+        response = requests.get(TASKS_ENDPOINT + task_id, headers={'token': 'Token'})
+        response_json = response.json()
+        logger.info(response_json)
+        if response_json['status'] == 'SUCCESS':
+            assert "result" in response_json
+            assert "images" in response_json["result"]
+            break
+        assert response_json['status'] == 'PENDING'
+
+
+def test_tasks_acess():
+    wait_for_http(TASKS_ENDPOINT)
+
+    # TODO: proper jwt token check
+
+    pipelineData = """
+    {
+        "9": {
+            "inputs": {
+                "filename_prefix": "ComfyUI",
+                "images": [
+                    "10",
+                    0
+                ]
+            },
+            "class_type": "SaveImage"
+        },
+        "10": {
+            "inputs": {
+                "image": "image.png",
+                "upload": "image"
+            },
+            "class_type": "LoadImage"
+        }
+    }
+    """
+
+    images = """
+    {
+        "image.png": "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAIAQMAAAD+wSzIAAAABlBMVEX///+/v7+jQ3Y5AAAADklEQVQI12P4AIX8EAgALgAD/aNpbtEAAAAASUVORK5CYII"
+    }
+    """
+
+    input_data = {
+        "token": "Token1",
+        "comfyPipeline": {
+            "pipelineData": pipelineData,
+            "pipelineDependencies": {"images": images},
+        },
+    }
+    response = requests.post(TASKS_ENDPOINT, json=input_data)
+    response_json = response.json()
+    logger.info(response_json)
+    task_id1 = response_json['task_id']
+
+    input_data['token'] = 'Token2'
+    response = requests.post(TASKS_ENDPOINT, json=input_data)
+    response_json = response.json()
+    logger.info(response_json)
+    task_id2 = response_json['task_id']
+
+    response_valid = requests.get(TASKS_ENDPOINT + task_id1, headers={'token': 'Token1'})
+    logger.info(response_valid)
+    assert response_valid.status_code == 201
+    
+    response_invalid = requests.get(TASKS_ENDPOINT + task_id2, headers={'token': 'Token1'})
+    logger.info(response_invalid)
+    assert response_invalid.status_code == 403
+
+    response_count = requests.get(TASKS_ENDPOINT, headers={'token': 'Token1'})
+    response_json = response_count.json()
+    logger.info(response_json)
+    assert response_json['count'] == 1
