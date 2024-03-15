@@ -2,7 +2,7 @@ import websocket
 import json
 import jsonschema
 
-from constants.env import TASK_RESULT_SCHEMA_PATH, TASK_SCHEMA_PATH
+from constants.static import TASK_RESULT_SCHEMA_PATH, TASK_SCHEMA_PATH
 from dispatcher.network_connection import NetworkConnection
 from dispatcher.task import Task
 import websocket

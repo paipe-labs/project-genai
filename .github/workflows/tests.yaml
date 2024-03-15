@@ -6,6 +6,27 @@ on:
   pull_request:
 
 jobs:
+  server_unit_tests:
+    name: server_unit_tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: build docker image
+        run: docker compose build server_unit_tests
+
+      - name: run container and server_unit_tests
+        run: |
+          docker compose up -d server
+          docker compose run server_unit_tests
+      - name: show server logs
+        if: always()
+        run: docker compose logs --no-log-prefix server
+
+      - name: stop docker compose
+        if: always()
+        run: docker compose down
+
   schema_tests:
     name: schema_tests
     runs-on: ubuntu-latest
@@ -24,8 +45,8 @@ jobs:
 
       - name: validate schema
         run: |
-          diff <(jq --sort-keys . backend-python/src/task_schema.json) <(jq --sort-keys . <(npx ts-node client-node/client-package/public/buildSchema.js -o task))
-          diff <(jq --sort-keys . backend-python/src/task_result_schema.json) <(jq --sort-keys . <(npx ts-node client-node/client-package/public/buildSchema.js -o taskResult))
+          diff <(jq --sort-keys . backend-python/src/schemas/task_schema.json) <(jq --sort-keys . <(npx ts-node client-node/client-package/public/buildSchema.js -o task))
+          diff <(jq --sort-keys . backend-python/src/schemas/task_result_schema.json) <(jq --sort-keys . <(npx ts-node client-node/client-package/public/buildSchema.js -o taskResult))
 
   e2e_tests:
     name: e2e_tests
@@ -42,8 +63,7 @@ jobs:
       - name: run containers and e2e_tests
         run: |
           docker compose up -d server node
-          docker compose run tests
-          docker compose run unit_tests
+          docker compose run e2e_tests
       - name: show server logs
         if: always()
         run: docker compose logs --no-log-prefix server

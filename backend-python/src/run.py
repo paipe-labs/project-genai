@@ -275,6 +275,7 @@ def websocket_connection(ws):
                     dispatcher.add_provider(provider)
                     registered_providers[ws] = node_id
             elif msg_type == "result":
+                
                 task_id = data_json.get("taskId")
                 results_url = data_json.get("resultsUrl")
                 id_ = registered_providers[ws]
