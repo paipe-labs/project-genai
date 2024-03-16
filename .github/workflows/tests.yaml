@@ -37,6 +37,8 @@ jobs:
           token: ${{ secrets.REPOSITORY_ACESS_KEY }}
 
       - uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
 
       - name: build
         run: |

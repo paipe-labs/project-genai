@@ -2,7 +2,7 @@ import websocket
 import json
 import jsonschema
 
-from constants.static import TASK_RESULT_SCHEMA_PATH, TASK_SCHEMA_PATH
+from constants.static import TASK_SCHEMA
 from dispatcher.network_connection import NetworkConnection
 from dispatcher.task import Task
 import websocket
@@ -15,11 +15,6 @@ class WSConnection(NetworkConnection):
     def __init__(self, ws: websocket.WebSocket):
         super().__init__()
         self.ws = ws
-
-        with open(TASK_SCHEMA_PATH) as task_schema:
-            self.task_schema = json.load(task_schema)
-        with open(TASK_RESULT_SCHEMA_PATH) as task_result_schema:
-            self.task_result_schema = json.load(task_result_schema)
 
     def restoreConnection(self, ws: websocket.WebSocket):
         self.ws = ws
@@ -49,11 +44,11 @@ class WSConnection(NetworkConnection):
         )
 
         try:
-            jsonschema.validate(instance=clientTask, schema=self.task_schema)
+            jsonschema.validate(instance=clientTask, schema=TASK_SCHEMA)
             self.ws.send(json.dumps(clientTask))
         except Exception as e:
             logger.warn(
-                f"Task {task.id} was not sent due to schema validation error: {e}"
+                f"Task {clientTask} was not sent due to schema validation error: {e}"
             )
 
     def abortTask(self, task: Task):
@@ -63,9 +58,9 @@ class WSConnection(NetworkConnection):
         }
 
         try:
-            jsonschema.validate(instance=clientTaskAbort, schema=self.task_schema)
+            jsonschema.validate(instance=clientTaskAbort, schema=TASK_SCHEMA)
             self.ws.send(json.dumps(clientTaskAbort))
         except Exception as e:
             logger.warn(
-                f"Task {task.id} was not aborted due to schema validation error: {e}"
+                f"Task {clientTaskAbort} was not aborted due to schema validation error: {e}"
             )
