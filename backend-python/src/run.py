@@ -301,7 +301,7 @@ def websocket_connection(ws):
                 try:
                     jsonschema.validate(instance=data_json, schema=TASK_RESULT_SCHEMA)
                 except Exception as e:
-                    logger.warn(
+                    logger.error(
                         f"Task {data_json} was not recieved due to schema validation error: {e}"
                     )
 

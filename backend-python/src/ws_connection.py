@@ -47,7 +47,7 @@ class WSConnection(NetworkConnection):
             jsonschema.validate(instance=clientTask, schema=TASK_SCHEMA)
             self.ws.send(json.dumps(clientTask))
         except Exception as e:
-            logger.warn(
+            logger.error(
                 f"Task {clientTask} was not sent due to schema validation error: {e}"
             )
 
@@ -56,11 +56,4 @@ class WSConnection(NetworkConnection):
             "type": "abort",
             "taskId": task.id,
         }
-
-        try:
-            jsonschema.validate(instance=clientTaskAbort, schema=TASK_SCHEMA)
-            self.ws.send(json.dumps(clientTaskAbort))
-        except Exception as e:
-            logger.warn(
-                f"Task {clientTaskAbort} was not aborted due to schema validation error: {e}"
-            )
+        self.ws.send(json.dumps(clientTaskAbort))
