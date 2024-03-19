@@ -15,7 +15,7 @@ NODES_DATA_FILE = os.environ.get("NODES_DATA_FILE", "")
 DEFAULT_DOCKER_IMAGE = os.environ.get("DEFAULT_DOCKER_IMAGE", "")
 DEFAULT_PROV_SCRIPT = os.environ.get("DEFAULT_PROV_SCRIPT", "")
 
-VASTAI_CREATE_CMD = """vastai create instance {id} --image {image} --env '-e BACKEND_SERVER={backend} -e PROVISIONING_SCRIPT="{prov_script}" ' --onstart-cmd 'env | grep _ >> /etc/environment; /opt/ai-dock/bin/init.sh & npx ts-node public/run.js -b ${{BACKEND_SERVER}} -t comfyUI -i ${{DIRECT_ADDRESS}}:${{COMFYUI_PORT}};'"""
+VASTAI_CREATE_CMD = """vastai create instance {id} --image {image} --env '-e BACKEND_SERVER={backend} -e PROVISIONING_SCRIPT="{prov_script}" ' --onstart-cmd 'env | grep _ >> /etc/environment; /opt/ai-dock/bin/init.sh & npx ts-node public/run.js -b {backend} -t comfyUI -i ${{DIRECT_ADDRESS}}:${{COMFYUI_PORT}};'"""
 
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
