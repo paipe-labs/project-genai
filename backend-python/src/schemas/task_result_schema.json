@@ -1,51 +1,51 @@
 {
-    "$ref": "#/definitions/TaskResultZod",
-    "definitions": {
-        "TaskResultZod": {
-            "type": "object",
-            "properties": {
-                "resultsUrl": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "taskId": {
-                    "type": "string"
-                },
-                "error": {
-                    "type": "string"
-                },
-                "type": {
-                    "anyOf": [
-                        {
-                            "type": "string",
-                            "enum": [
-                                "result",
-                                "error"
-                            ]
-                        },
-                        {
-                            "type": "string",
-                            "const": "status"
-                        }
-                    ]
-                },
-                "status": {
-                    "type": "string",
-                    "enum": [
-                        "ready",
-                        "inProgress"
-                    ]
-                }
+  "$ref": "#/definitions/TaskResultZod",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "TaskResultZod": {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "resultsUrl": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "ready",
+            "inProgress"
+          ],
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "enum": [
+                "result",
+                "error"
+              ],
+              "type": "string"
             },
-            "required": [
-                "resultsUrl",
-                "taskId",
-                "type"
-            ],
-            "additionalProperties": false
+            {
+              "const": "status",
+              "type": "string"
+            }
+          ]
         }
-    },
-    "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "required": [
+        "resultsUrl",
+        "taskId",
+        "type"
+      ],
+      "type": "object"
+    }
+  }
 }

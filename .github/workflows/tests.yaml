@@ -43,12 +43,10 @@ jobs:
       - name: build
         run: |
           yarn --cwd client-node/client-package/ install
-          yarn --cwd client-node/client-package/ build
+          yarn --cwd client-node/client-package/ generate:schemas
 
-      - name: validate schema
-        run: |
-          diff <(jq --sort-keys . backend-python/src/schemas/task_schema.json) <(jq --sort-keys . <(npx ts-node client-node/client-package/public/buildSchema.js -o task))
-          diff <(jq --sort-keys . backend-python/src/schemas/task_result_schema.json) <(jq --sort-keys . <(npx ts-node client-node/client-package/public/buildSchema.js -o taskResult))
+      - name: validate schemas
+        run: diff backend-python/src/schemas client-node/client-package/src/schemas
 
   e2e_tests:
     name: e2e_tests
