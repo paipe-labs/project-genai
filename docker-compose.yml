@@ -17,10 +17,6 @@ services:
     build:
       context: client-node
       dockerfile: client-node-comfyui.dockerfile
-      args:
-        COMFYUI_TAG: cpu-latest
-
-    command: node public/run.js -b 'ws://server:8080/' -i 'localhost:8188' -t 'comfyUI'
     depends_on:
       - server
     
