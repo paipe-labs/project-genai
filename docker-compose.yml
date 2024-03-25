@@ -8,8 +8,8 @@ services:
       - "8080:8080"
     hostname: server
     environment:
-      ENFORCE_JWT_AUTH: false
       DEBUG: true
+      ENFORCE_JWT_AUTH: false
     # TODO: pass self url as command line argument
 
   node:
@@ -19,8 +19,14 @@ services:
       dockerfile: client-node-comfyui.dockerfile
     depends_on:
       - server
+    
+  server_unit_tests:
+    build:
+      context: backend-python
+      dockerfile: backend.dockerfile
+    entrypoint: ["pytest"]
 
-  tests:
+  e2e_tests:
     build:
       context: tests
       dockerfile: tests.dockerfile
@@ -29,10 +35,3 @@ services:
     depends_on:
       - server
       - node
-  
-  unit_tests:
-    image: genai-server
-    build:
-      context: backend-python
-      dockerfile: backend.dockerfile
-    entrypoint: ["pytest"]

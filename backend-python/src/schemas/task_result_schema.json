@@ -1,0 +1,51 @@
+{
+  "$ref": "#/definitions/TaskResultZod",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "TaskResultZod": {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "resultsUrl": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "ready",
+            "inProgress"
+          ],
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "enum": [
+                "result",
+                "error"
+              ],
+              "type": "string"
+            },
+            {
+              "const": "status",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "required": [
+        "resultsUrl",
+        "taskId",
+        "type"
+      ],
+      "type": "object"
+    }
+  }
+}

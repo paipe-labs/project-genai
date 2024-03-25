@@ -1,0 +1,116 @@
+{
+  "$ref": "#/definitions/TaskZod",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "TaskZod": {
+      "additionalProperties": false,
+      "properties": {
+        "comfyOptions": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "pipelineData": {
+                  "type": "string"
+                },
+                "pipelineDependencies": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "images": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "images"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "pipelineData",
+                "pipelineDependencies"
+              ],
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "options": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "model": {
+                  "type": "string"
+                },
+                "prompt": {
+                  "type": "string"
+                },
+                "size": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "height": {
+                          "type": "number"
+                        },
+                        "width": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "width",
+                        "height"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "steps": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "prompt",
+                "model",
+                "size",
+                "steps"
+              ],
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "taskId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "options",
+        "comfyOptions",
+        "taskId"
+      ],
+      "type": "object"
+    }
+  }
+}

@@ -6,27 +6,72 @@ on:
   pull_request:
 
 jobs:
-  tests:
-    name: tests
+  server_unit_tests:
+    name: server_unit_tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: build docker image
+        run: docker compose build server_unit_tests
+
+      - name: run container and server_unit_tests
+        run: |
+          docker compose up -d server
+          docker compose run server_unit_tests
+      - name: show server logs
+        if: always()
+        run: docker compose logs --no-log-prefix server
+
+      - name: stop docker compose
+        if: always()
+        run: docker compose down
+
+  schema_tests:
+    name: schema_tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-            submodules: recursive
-            token: ${{ secrets.REPOSITORY_ACESS_KEY }}
+          submodules: recursive
+          token: ${{ secrets.REPOSITORY_ACESS_KEY }}
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+
+      - name: build
+        run: |
+          yarn --cwd client-node/client-package/ install
+          yarn --cwd client-node/client-package/ generate:schemas
+
+      - name: validate schemas
+        run: diff backend-python/src/schemas client-node/client-package/src/schemas
+
+  e2e_tests:
+    name: e2e_tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.REPOSITORY_ACESS_KEY }}
+
       - name: build docker images
         run: docker compose build
-      - name: run containers and tests
+
+      - name: run containers and e2e_tests
         run: |
           docker compose up -d server node
-          docker compose run tests
-          docker compose run unit_tests
+          docker compose run e2e_tests
       - name: show server logs
         if: always()
         run: docker compose logs --no-log-prefix server
+
       - name: show node logs
         if: always()
         run: docker compose logs --no-log-prefix node
+
       - name: stop docker compose
         if: always()
         run: docker compose down
