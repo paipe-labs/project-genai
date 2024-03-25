@@ -6,27 +6,23 @@ services:
       dockerfile: backend.dockerfile
     ports:
       - "8080:8080"
-    hostname: server
     environment:
       DEBUG: true
       ENFORCE_JWT_AUTH: false
     # TODO: pass self url as command line argument
 
-  node:
-    image: genai-node
+  node-comfyui:
+    image: genai-node-comfyui
     build:
       context: client-node
       dockerfile: client-node-comfyui.dockerfile
+      args:
+        COMFYUI_TAG: pytorch-2.2.0-py3.10-cpu-22.04
+    command: -b 'ws://server:8080/' -i 'localhost:8188' -t 'comfyUI'
     depends_on:
       - server
-    
-  server_unit_tests:
-    build:
-      context: backend-python
-      dockerfile: backend.dockerfile
-    entrypoint: ["pytest"]
 
-  e2e_tests:
+  e2e-tests:
     build:
       context: tests
       dockerfile: tests.dockerfile
@@ -34,4 +30,10 @@ services:
       SERVER_URL: "http://server:8080"
     depends_on:
       - server
-      - node
+      - node-comfyui
+    
+  server-unit-tests:
+    build:
+      context: backend-python
+      dockerfile: backend.dockerfile
+    entrypoint: ["pytest"]
