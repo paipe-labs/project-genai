@@ -1,6 +1,7 @@
+import copy
 import sys
-
 sys.path.append("/backend-python/src")
+
 
 from dispatcher.task import build_task_from_query, Task
 from dispatcher.task_info import (
@@ -8,8 +9,6 @@ from dispatcher.task_info import (
     StandardPipelineOptions,
     TaskOptions,
 )
-
-import copy
 
 COMMON_TASK_ID = "1"
 COMMON_TASK_DATA = {"max_cost": 15, "time_to_money_ratio": 1}

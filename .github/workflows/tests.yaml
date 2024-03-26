@@ -1,55 +1,51 @@
-name: tests
+name: Tests
 
 on:
   push:
     branches: ["master"]
   pull_request:
+    branches: ["master"]
 
 jobs:
-  server_unit_tests:
-    name: server_unit_tests
+  server-unit-tests:
+    name: Server Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: build docker image
-        run: docker compose build server_unit_tests
-
-      - name: run container and server_unit_tests
-        run: |
-          docker compose up -d server
-          docker compose run server_unit_tests
-      - name: show server logs
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build Docker Image
+        run: docker compose build server-unit-tests
+      - name: Run Server Unit Tests
+        run: docker compose run server-unit-tests
+      - name: Show Server Logs
         if: always()
         run: docker compose logs --no-log-prefix server
-
-      - name: stop docker compose
+      - name: Stop Docker Compose
         if: always()
         run: docker compose down
 
-  schema_tests:
-    name: schema_tests
+  schema-tests:
+    name: Schema Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           submodules: recursive
           token: ${{ secrets.REPOSITORY_ACESS_KEY }}
-
-      - uses: actions/setup-node@v3
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          node-version: 20.x
-
-      - name: build
+          node-version: 20
+      - name: Generate Schemas
         run: |
           yarn --cwd client-node/client-package/ install
           yarn --cwd client-node/client-package/ generate:schemas
-
-      - name: validate schemas
+      - name: Validate Schemas
         run: diff backend-python/src/schemas client-node/client-package/src/schemas
 
-  e2e_tests:
-    name: e2e_tests
+  e2e-tests:
+    name: e2e-tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -60,17 +56,17 @@ jobs:
       - name: build docker images
         run: docker compose build
 
-      - name: run containers and e2e_tests
+      - name: run containers and e2e-tests
         run: |
-          docker compose up -d server node
-          docker compose run e2e_tests
+          docker compose up -d server node-comfyui
+          docker compose run e2e-tests
       - name: show server logs
         if: always()
         run: docker compose logs --no-log-prefix server
 
-      - name: show node logs
+      - name: show node-comfyui logs
         if: always()
-        run: docker compose logs --no-log-prefix node
+        run: docker compose logs --no-log-prefix node-comfyui
 
       - name: stop docker compose
         if: always()
