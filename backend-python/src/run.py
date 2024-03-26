@@ -290,9 +290,13 @@ def websocket_connection(ws):
             msg_type = data_json.get("type")
             if msg_type == "register":
                 node_id = data_json.get("node_id")
+                metadata = data_json.get("metadata")
+                public_meta = PublicMetaInfo(models=metadata.get("models", []),
+                                             gpu_type=metadata.get("gpu_type", ""),
+                                             ncpu=metadata.get("ncpu", 0),
+                                             ram=metadata.get("ram", 0),
+                                             min_cost=10)
                 print(f"Node {node_id} connected")
-                public_meta = PublicMetaInfo(10)
-
                 if node_id in dispatcher.providers_map:
                     existing_provider = dispatcher.providers_map[node_id]
                     existing_provider.update_public_meta_info(public_meta)
