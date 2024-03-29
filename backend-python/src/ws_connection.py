@@ -49,6 +49,7 @@ class WSConnection(NetworkConnection):
             logger.error(
                 f"Task {clientTask} was not sent due to schema validation error: {e}"
             )
+            return
 
         self.ws.send(json.dumps(clientTask))
 
