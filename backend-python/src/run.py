@@ -28,7 +28,7 @@ import uuid
 monkey.patch_all()
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, allow_headers="*", origins="*", methods="GET, POST, PATCH, PUT, DELETE, OPTIONS")
 sock = Sock(app)
 
 entry_queue = EntryQueue()
@@ -182,7 +182,7 @@ def generate_image():
     connections[task_id] = future
 
     try:
-        response = connections[task_id].result(timeout=10)
+        response = connections[task_id].result(timeout=60)
     except Exception as e:
         return (jsonify({"error": "Timeout waiting for WebSocket response"}), 504)
 
@@ -284,6 +284,7 @@ def websocket_connection(ws):
             msg_type = data_json.get("type")
             if msg_type == "register":
                 node_id = data_json.get("node_id")
+                print(f"Node {node_id} connected")
                 public_meta = PublicMetaInfo(10)
                 if node_id in dispatcher.providers_map:
                     existing_provider = dispatcher.providers_map[node_id]
