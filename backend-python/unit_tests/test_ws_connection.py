@@ -61,7 +61,7 @@ def test_ws_connection_invalid_schema_standard():
     ws_connection = WSConnection(echo)
 
     ws_connection.send_task(task)
-    assert echo.recv() == ""
+    assert "was not sent due to schema validation error" in echo.recv()
 
 
 def test_ws_connection_valid_schema_comfy():
@@ -97,4 +97,4 @@ def test_ws_connection_invalid_schema_comfy():
     echo = WSConnectionEchoMock()
     ws_connection = WSConnection(echo)
     ws_connection.send_task(task)
-    assert echo.recv() == ""
+    assert "was not sent due to schema validation error" in echo.recv()
