@@ -275,6 +275,7 @@ def websocket_connection(ws):
         if data == "close":
             if ws in registered_providers:
                 id_ = registered_providers[ws]
+                print(f"Node {id_} disconnected")
                 provider = dispatcher.providers_map.get(id_)
                 if provider:
                     provider.network_connection.on_connection_lost()
@@ -286,6 +287,7 @@ def websocket_connection(ws):
                 node_id = data_json.get("node_id")
                 print(f"Node {node_id} connected")
                 public_meta = PublicMetaInfo(10)
+
                 if node_id in dispatcher.providers_map:
                     existing_provider = dispatcher.providers_map[node_id]
                     existing_provider.update_public_meta_info(public_meta)
@@ -298,6 +300,8 @@ def websocket_connection(ws):
                     )
                     dispatcher.add_provider(provider)
                     registered_providers[ws] = node_id
+
+                print(f"Registered providers: {dispatcher.providers_map.keys()}")
             elif msg_type == "result":
                 try:
                     jsonschema.validate(instance=data_json, schema=TASK_RESULT_SCHEMA)
