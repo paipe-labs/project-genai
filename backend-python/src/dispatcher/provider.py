@@ -1,4 +1,5 @@
 from math import inf
+from typing import Callable, Union
 
 import flask_sock
 
@@ -33,8 +34,8 @@ class Provider:
         self._is_online = True
         self._offline_timeout = None  # NodeJS.Timeout
 
-        self._on_closed_callback = None
-        self._on_updated_callback = None
+        self._on_closed_callback: Union[Callable[[], None], None] = None
+        self._on_updated_callback: Union[Callable[[], None], None] = None
 
         self._in_progress: set[Task] = set()
         self._estimator = ProviderEstimator(
@@ -169,10 +170,10 @@ class Provider:
         task.complete(result)
         self.on_updated()
 
-    def set_on_closed(self, callback):
+    def set_on_closed(self, callback: Callable[[], None]):
         self._on_closed_callback = callback
 
-    def set_on_updated(self, callback):
+    def set_on_updated(self, callback: Callable[[], None]):
         self._on_updated_callback = callback
 
     def on_closed(self):
