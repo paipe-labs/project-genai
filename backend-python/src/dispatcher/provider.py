@@ -1,3 +1,5 @@
+import flask_sock
+
 from dispatcher.provider_estimator import ProviderEstimator
 from dispatcher.network_connection import NetworkConnection
 from dispatcher.task import Task
@@ -122,9 +124,14 @@ class Provider:
             self.network_connection.send_task(task)
             task.in_progress = True
             return
+        except flask_sock.ConnectionClosed:
+            # TODO: make sure task is rescheduled somewhere
+            logger.warn("got ConnectionClosed exception on send_task in provider {id}".format(id=self._id))
+            self.on_closed()
+            return
         except Exception as e:
-            print("ex", e)
-            pass
+            logger.error("unhandled exception in async_schedule_task:", e)
+            return
 
     def estimate_task_waiting_time(self, task: Task) -> int:
         return self._estimator.estimate_task_time(task)
