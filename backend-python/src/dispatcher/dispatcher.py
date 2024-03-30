@@ -41,7 +41,9 @@ class Dispatcher:
             return
         self._providers_map[provider.id] = provider
         self.calculate_min_cost()
-        self._providers_map[provider.id].set_on_closed(self.remove_provider)
+        self._providers_map[provider.id].set_on_closed(
+            lambda: self.remove_provider(provider.id)
+        )
         self._providers_map[provider.id].set_on_updated(
             self.calculate_min_cost)
 
