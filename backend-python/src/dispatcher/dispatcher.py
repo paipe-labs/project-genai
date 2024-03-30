@@ -75,12 +75,12 @@ class Dispatcher:
                 task
             )
             score = provider.min_cost + waiting_time * task.time_to_money_ratio
-            if best_provider == None or score < min_score:
+            if best_provider is None or score < min_score:
                 min_score = score
                 min_waiting_time = waiting_time
                 best_provider = provider
 
-        if best_provider == None:
+        if best_provider is None:
             logger.info("Not found provider for task {id}".format(id=task.id))
             return False
 
@@ -97,13 +97,13 @@ class Dispatcher:
 
     def pull_task(self) -> None:
         task = self._entry_queue.pop_task(self._min_cost)
-        if task == None:
+        if task is None:
             logger.warn("Queue is empty")
             return
 
         task.set_status(TaskStatusPayload(task_status=TaskStatus.PULLED_BY_DISPATCHER))
         is_scheduled = self._schedule_task(task)
-        if is_scheduled == False:
+        if not is_scheduled:
             logger.warn("Task {id} failed to be scheduled".format(id=task.id))
             task.add_failed_attempt()
             if task.num_failed_attempts < TASK_NUM_MAX_ATTEMPTS:

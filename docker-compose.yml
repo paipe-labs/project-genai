@@ -9,6 +9,7 @@ services:
     environment:
       DEBUG: true
       ENFORCE_JWT_AUTH: false
+      WS_TASK_TIMEOUT: 10
     # TODO: pass self url as command line argument
 
   node-comfyui:

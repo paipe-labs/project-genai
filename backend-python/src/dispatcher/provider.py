@@ -11,7 +11,6 @@ from dispatcher.util.logger import logger
 from dispatcher.meta_info import PublicMetaInfo, PrivateMetaInfo
 import asyncio
 
-
 import typing
 from math import inf
 
@@ -69,12 +68,12 @@ class Provider:
 
     @property
     def min_cost(self):  # used to be a method
-        if self._is_online == False:
+        if not self._is_online:
             return inf
         return self._pub_meta_info.min_cost
 
     def start_offline(self):
-        if self._offline_timeot != None:
+        if self._offline_timeout is not None:
             return
         # TODO
         # self._offline_timeot = setTimeout(
@@ -93,11 +92,11 @@ class Provider:
             self.on_closed()
 
     def stop_offline(self):
-        if self._offline_timeout == None:
+        if self._offline_timeout is None:
             return
         # TODO
         # clearTimeout(self._offline_timeout)
-        self._offline_timeot = None
+        self._offline_timeout = None
         self._is_online = True
         self.on_updated()
 
@@ -169,7 +168,7 @@ class Provider:
         self._on_updated_callback = callback
 
     def on_closed(self):
-        if self._on_closed_callback == None:
+        if self._on_closed_callback is None:
             logger.warn(
                 "On updated callback not set in provider {id}".format(id=self._id)
             )
@@ -177,7 +176,7 @@ class Provider:
         self._on_closed_callback()
 
     def on_updated(self):
-        if self._on_updated_callback == None:
+        if self._on_updated_callback is None:
             logger.warn(
                 "On updated callback not set in provider {id}".format(id=self._id)
             )

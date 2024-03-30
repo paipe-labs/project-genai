@@ -40,7 +40,7 @@ def test_storage_manager():
     assert task_info["task"].time_to_money_ratio == 20
 
     task_info = manager.get_task_data_with_verification(uid1, "2")
-    assert task_info == None
+    assert task_info is None
 
     manager.add_result("2", "result_image_url")
     task_info = manager.get_task_data_with_verification(uid2, "2")

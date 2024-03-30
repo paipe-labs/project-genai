@@ -1,8 +1,9 @@
 import os
 
-from utils.parse import parse
+DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
+ENFORCE_JWT_AUTH = os.environ.get("ENFORCE_JWT_AUTH", "true").lower() == "true"
+HTTP_WS_PORT = int(os.environ.get("HTTP_PORT", "8080"))
 
-DEBUG = parse(os.environ.get("DEBUG", ""), False, bool)
-ENFORCE_JWT_AUTH = parse(os.environ.get("ENFORCE_JWT_AUTH", ""), True, bool)
-HTTP_WS_PORT = parse(os.environ.get("HTTP_PORT", ""), 8080, int)
+WS_TASK_TIMEOUT = int(os.environ.get("WS_TASK_TIMEOUT", "60"))
+
 JWT_SECRET = os.environ.get("JWT_SECRET", "")

@@ -44,31 +44,31 @@ class NetworkConnection:
         self._on_task_failed = callback
 
     def on_meta_info_updated(self, meta_info: PublicMetaInfo):
-        if self._on_public_meta_info_updated == None:
+        if self._on_public_meta_info_updated is None:
             logger.warn("on_meta_info_updated callback is empty")
             return
         self._on_public_meta_info_updated(meta_info)
 
     def on_connection_lost(self):
-        if self._on_connection_lost == None:
+        if self._on_connection_lost is None:
             logger.warn("on_connection_lost callback is empty")
             return
         self._on_connection_lost()
 
     def on_connection_restored(self):
-        if self._on_connection_restored == None:
+        if self._on_connection_restored is None:
             logger.warn("on_connection_restored callback is empty")
             return
         self._on_connection_restored()
 
     def on_task_completed(self, task: Task, task_result: TaskResult):
-        if self._on_task_completed == None:
+        if self._on_task_completed is None:
             logger.warn("on_task_completed callback is empty")
             return
         self._on_task_completed(task, task_result)
 
     def on_task_failed(self, task: Task, reason: str):
-        if self._on_task_failed == None:
+        if self._on_task_failed is None:
             logger.warn("on_task_failed callback is empty")
             return
         self._on_task_failed(task, reason)
