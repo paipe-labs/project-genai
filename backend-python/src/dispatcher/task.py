@@ -102,13 +102,13 @@ class Task:
         self._on_failed = on_failed_callback
 
     def complete(self, task_result: TaskResult) -> None:
-        if self._on_completed == None:
+        if self._on_completed is None:
             logger.error("on_completed callback not set in task {id}".format(self.id))
         else:
             self._on_completed(task_result)
 
     def fail(self) -> None:
-        if self._on_failed == None:
+        if self._on_failed is None:
             logger.error("on_failed callback not set in task {id}".format(self.id))
         else:
             self._on_failed()

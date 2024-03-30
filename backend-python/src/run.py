@@ -1,4 +1,4 @@
-from constants.env import ENFORCE_JWT_AUTH, HTTP_WS_PORT
+from constants.env import ENFORCE_JWT_AUTH, HTTP_WS_PORT, WS_TASK_TIMEOUT
 from constants.static import TASK_RESULT_SCHEMA
 
 from dispatcher.dispatcher import Dispatcher
@@ -182,7 +182,7 @@ def generate_image():
     connections[task_id] = future
 
     try:
-        response = connections[task_id].result(timeout=60)
+        response = connections[task_id].result(timeout=WS_TASK_TIMEOUT)
     except Exception as e:
         return (jsonify({"error": "Timeout waiting for WebSocket response"}), 504)
 
@@ -311,7 +311,7 @@ def websocket_connection(ws):
                 id_ = registered_providers[ws]
                 provider = dispatcher.providers_map.get(id_)
 
-                if provider:
+                if provider is not None:
                     task_data = storage_manager.get_task_data(task_id)
                     if task_data:
                         task = task_data.get("task")

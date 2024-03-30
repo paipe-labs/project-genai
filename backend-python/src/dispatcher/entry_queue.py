@@ -25,7 +25,7 @@ class EntryQueue:
         if len(self._queue) == 0:
             return None
 
-        if min_cost == None:
+        if min_cost is None:
             return self._queue.pop()
 
         task = None
@@ -33,7 +33,7 @@ class EntryQueue:
             if t.max_cost > min_cost:
                 task = t
                 break
-        if task != None:
+        if task is not None:
             self.remove_task(task)
 
         return task
@@ -42,7 +42,7 @@ class EntryQueue:
         self._on_task_added = callback
 
     def on_task_added(self, task: Task):
-        if self._on_task_added == None:
+        if self._on_task_added is None:
             logger.error("No on_task_added callback")
             return
         self._on_task_added(task)

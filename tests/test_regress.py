@@ -1,3 +1,4 @@
+import concurrent.futures
 import os
 import requests
 import time
@@ -93,13 +94,21 @@ def test_images_generation_comfyui():
             "pipelineDependencies": {"images": images},
         },
     }
-    response = requests.post(IMAGES_GENERATION_ENDPOINT, json=input_data)
-    response_json = response.json()
 
-    logger.info(response_json)
-    assert response.status_code == 202
-    assert "result" in response_json
-    assert "images" in response_json["result"]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [executor.submit(requests.post, IMAGES_GENERATION_ENDPOINT, json=input_data) for _ in range(20)]
+
+        concurrent.futures.wait(futures)
+
+        # Process the results
+        for future in futures:
+            response = future.result()
+            response_json = response.json()
+
+            logger.info(response_json)
+            assert response.status_code == 202
+            assert "result" in response_json
+            assert "images" in response_json["result"]
 
 
 def test_tasks_basic():
