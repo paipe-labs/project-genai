@@ -13,8 +13,10 @@ class EntryQueue:
 
     def add_task(self, task: Task, task_priority: int):
         task.set_priority(task_priority)
-        insort(self._queue, task, key=lambda t: -t.priority)  # descending order
-        task.set_status(TaskStatusPayload(task_status=TaskStatus.PUSHED_INTO_QUEUE))
+        insort(self._queue, task, key=lambda t: -
+               t.priority)  # descending order
+        task.set_status(TaskStatusPayload(
+            task_status=TaskStatus.PUSHED_INTO_QUEUE))
         self.on_task_added(task)
 
     def remove_task(self, task: Task):

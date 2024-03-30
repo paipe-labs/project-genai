@@ -7,7 +7,6 @@ from dispatcher.task_info import (
 )
 from dispatcher.entry_queue import EntryQueue
 from dispatcher.util.logger import logger
-from constants.env import DEBUG
 
 import typing
 from math import inf
@@ -43,11 +42,13 @@ class Dispatcher:
         self._providers_map[provider.id] = provider
         self.calculate_min_cost()
         self._providers_map[provider.id].set_on_closed(self.remove_provider)
-        self._providers_map[provider.id].set_on_updated(self.calculate_min_cost)
+        self._providers_map[provider.id].set_on_updated(
+            self.calculate_min_cost)
 
     def remove_provider(self, provider: Provider) -> None:
         if provider.id not in self._providers_map.keys():
-            logger.warn("Provider {id} not in dispatcher".format(id=provider.id))
+            logger.warn(
+                "Provider {id} not in dispatcher".format(id=provider.id))
             return
 
         self._providers_map.pop(provider.id)
@@ -101,7 +102,8 @@ class Dispatcher:
             logger.warn("Queue is empty")
             return
 
-        task.set_status(TaskStatusPayload(task_status=TaskStatus.PULLED_BY_DISPATCHER))
+        task.set_status(TaskStatusPayload(
+            task_status=TaskStatus.PULLED_BY_DISPATCHER))
         is_scheduled = self._schedule_task(task)
         if not is_scheduled:
             logger.warn("Task {id} failed to be scheduled".format(id=task.id))
@@ -109,13 +111,15 @@ class Dispatcher:
             if task.num_failed_attempts < TASK_NUM_MAX_ATTEMPTS:
                 self._entry_queue.add_task(task, task.priority)
             else:
-                task.set_status(TaskStatusPayload(task_status=TaskStatus.REJECTED))
+                task.set_status(TaskStatusPayload(
+                    task_status=TaskStatus.REJECTED))
                 task.fail()
 
     def task_added_callback(self, task: Task) -> None:
         if task.max_cost < self._min_cost:
             logger.warn(
-                "Task {id} rejected by dispatcher: cost too low".format(id=task.id)
+                "Task {id} rejected by dispatcher: cost too low".format(
+                    id=task.id)
             )
             task.set_status(TaskStatusPayload(task_status=TaskStatus.REJECTED))
             return

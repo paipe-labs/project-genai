@@ -1,7 +1,10 @@
+from math import inf
+
 import flask_sock
 
-from dispatcher.provider_estimator import ProviderEstimator
+from dispatcher.meta_info import PublicMetaInfo, PrivateMetaInfo
 from dispatcher.network_connection import NetworkConnection
+from dispatcher.provider_estimator import ProviderEstimator
 from dispatcher.task import Task
 from dispatcher.task_info import (
     FailedByProvider,
@@ -10,11 +13,6 @@ from dispatcher.task_info import (
     TaskResult,
 )
 from dispatcher.util.logger import logger
-from dispatcher.meta_info import PublicMetaInfo, PrivateMetaInfo
-import asyncio
-
-import typing
-from math import inf
 
 # TODO: reevaluate & move
 NUM_RETRY_ATTEMPTS = 3
@@ -23,11 +21,11 @@ OFFLINE_TIMEOUT = 3000
 
 class Provider:
     def __init__(
-        self,
-        provider_id: str,
-        public_meta_info: PublicMetaInfo,
-        private_meta_info: PrivateMetaInfo,
-        network_connection: NetworkConnection,
+            self,
+            provider_id: str,
+            public_meta_info: PublicMetaInfo,
+            private_meta_info: PrivateMetaInfo,
+            network_connection: NetworkConnection,
     ):
         self._id = provider_id
         self._pub_meta_info = public_meta_info
@@ -39,10 +37,12 @@ class Provider:
         self._on_updated_callback = None
 
         self._in_progress: set[Task] = set()
-        self._estimator = ProviderEstimator(self._pub_meta_info, self._pr_meta_info)
+        self._estimator = ProviderEstimator(
+            self._pub_meta_info, self._pr_meta_info)
 
         self._network_connection = network_connection
-        self._network_connection.set_on_meta_info_updated(self.update_public_meta_info)
+        self._network_connection.set_on_meta_info_updated(
+            self.update_public_meta_info)
         self._network_connection.set_on_connection_lost(self.start_offline)
         self._network_connection.set_on_connection_restored(self.stop_offline)
         self._network_connection.set_on_task_completed(self.task_completed)
@@ -126,7 +126,8 @@ class Provider:
             return
         except flask_sock.ConnectionClosed:
             # TODO: make sure task is rescheduled somewhere
-            logger.warn("got ConnectionClosed exception on send_task in provider {id}".format(id=self._id))
+            logger.warn(
+                "got ConnectionClosed exception on send_task in provider {id}".format(id=self._id))
             self.on_closed()
             return
         except Exception as e:
@@ -177,7 +178,8 @@ class Provider:
     def on_closed(self):
         if self._on_closed_callback is None:
             logger.warn(
-                "On updated callback not set in provider {id}".format(id=self._id)
+                "On updated callback not set in provider {id}".format(
+                    id=self._id)
             )
             return
         self._on_closed_callback()
@@ -185,7 +187,8 @@ class Provider:
     def on_updated(self):
         if self._on_updated_callback is None:
             logger.warn(
-                "On updated callback not set in provider {id}".format(id=self._id)
+                "On updated callback not set in provider {id}".format(
+                    id=self._id)
             )
             return
         self._on_updated_callback()
