@@ -36,7 +36,8 @@ class ProviderEstimator:
     def remove_task(self, task: Task):
         if task not in self._estimated_time.keys():
             logger.warning(
-                "trying to remove task {id} that wasn't added".format(id=task.id)
+                "trying to remove task {id} that wasn't added".format(
+                    id=task.id)
             )
             return
         self._total_estimated_time -= self._estimated_time.pop(task)

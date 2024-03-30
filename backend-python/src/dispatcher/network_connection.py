@@ -17,7 +17,8 @@ class NetworkConnection:
 
     # these return Promise<void> in ts - call with await
     async def send_task(self, task: Task):
-        task.set_status(TaskStatusPayload(task_status=TaskStatus.SENT_TO_PROVIDER))
+        task.set_status(TaskStatusPayload(
+            task_status=TaskStatus.SENT_TO_PROVIDER))
         # TODO
 
     async def abort_task(self, task: Task):

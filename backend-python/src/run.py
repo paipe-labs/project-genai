@@ -28,7 +28,8 @@ import uuid
 monkey.patch_all()
 
 app = Flask(__name__)
-CORS(app, allow_headers="*", origins="*", methods="GET, POST, PATCH, PUT, DELETE, OPTIONS")
+CORS(app, allow_headers="*", origins="*",
+     methods="GET, POST, PATCH, PUT, DELETE, OPTIONS")
 sock = Sock(app)
 
 entry_queue = EntryQueue()
@@ -64,7 +65,8 @@ def check_data_and_state(
         if not pipeline_data:
             return QueryValidationResult(
                 is_ok=False,
-                error_data={"ok": False, "error": "image pipeline is not specified"},
+                error_data={"ok": False,
+                            "error": "image pipeline is not specified"},
                 error_code=404,
             )
     else:
@@ -73,7 +75,8 @@ def check_data_and_state(
         if not standard_pipeline and not comfy_pipeline:
             return QueryValidationResult(
                 is_ok=False,
-                error_data={"ok": False, "error": "image pipeline is not specified"},
+                error_data={"ok": False,
+                            "error": "image pipeline is not specified"},
                 error_code=404,
             )
 
@@ -91,7 +94,8 @@ def check_data_and_state(
             if len(prompt) == 0:
                 return QueryValidationResult(
                     is_ok=False,
-                    error_data={"ok": False, "error": "prompt length cannot be 0"},
+                    error_data={"ok": False,
+                                "error": "prompt length cannot be 0"},
                     error_code=404,
                 )
         if comfy_pipeline:
@@ -262,7 +266,8 @@ def get_tasks():
         return (jsonify({"ok": False, "error": "No tasks for this user"}), 403)
 
     tasks_to_return = {
-        task_id: {"status": task_data["status"], "result": task_data.get("result")}
+        task_id: {"status": task_data["status"],
+                  "result": task_data.get("result")}
         for task_id, task_data in tasks.items()
     }
     return (jsonify({"ok": True, "count": len(tasks), "data": tasks_to_return}), 200)
@@ -301,10 +306,12 @@ def websocket_connection(ws):
                     dispatcher.add_provider(provider)
                     registered_providers[ws] = node_id
 
-                print(f"Registered providers: {dispatcher.providers_map.keys()}")
+                print(
+                    f"Registered providers: {dispatcher.providers_map.keys()}")
             elif msg_type == "result":
                 try:
-                    jsonschema.validate(instance=data_json, schema=TASK_RESULT_SCHEMA)
+                    jsonschema.validate(instance=data_json,
+                                        schema=TASK_RESULT_SCHEMA)
                 except Exception as e:
                     logger.error(
                         f"Task {data_json} was not recieved due to schema validation error: {e}"

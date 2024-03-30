@@ -16,6 +16,7 @@ from dispatcher.task_info import (
 
 import typing
 
+
 class TaskLog(typing.NamedTuple):
     date: datetime
     task_status_payload: TaskStatusPayload
@@ -103,15 +104,18 @@ class Task:
 
     def complete(self, task_result: TaskResult) -> None:
         if self._on_completed is None:
-            logger.error("on_completed callback not set in task {id}".format(self.id))
+            logger.error(
+                "on_completed callback not set in task {id}".format(self.id))
         else:
             self._on_completed(task_result)
 
     def fail(self) -> None:
         if self._on_failed is None:
-            logger.error("on_failed callback not set in task {id}".format(self.id))
+            logger.error(
+                "on_failed callback not set in task {id}".format(self.id))
         else:
             self._on_failed()
+
 
 def build_task_from_query(task_id: str, **kwargs) -> Task:
     max_cost = kwargs.get('max_cost')
