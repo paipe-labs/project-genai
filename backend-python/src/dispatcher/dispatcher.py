@@ -41,20 +41,19 @@ class Dispatcher:
             return
         self._providers_map[provider.id] = provider
         self.calculate_min_cost()
-        pid = provider.id
         self._providers_map[provider.id].set_on_closed(
-            lambda: self.remove_provider(pid)
+            lambda: self.remove_provider(provider.id)
         )
         self._providers_map[provider.id].set_on_updated(
             self.calculate_min_cost)
 
-    def remove_provider(self, provider: Provider) -> None:
-        if provider.id not in self._providers_map.keys():
+    def remove_provider(self, provider_id: str) -> None:
+        if provider_id not in self._providers_map.keys():
             logger.warn(
-                "Provider {id} not in dispatcher".format(id=provider.id))
+                "Provider {id} not in dispatcher".format(id=provider_id))
             return
 
-        self._providers_map.pop(provider.id)
+        self._providers_map.pop(provider_id)
         self.calculate_min_cost()
 
     # TODO: change recalculation of min cost
