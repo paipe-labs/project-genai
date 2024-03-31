@@ -29,6 +29,9 @@ class NetworkConnection:
         # TODO: drop websocket connection
         pass
 
+    def restore_connection(self, connection_object):
+        pass
+
     def set_on_meta_info_updated(self, callback):
         self._on_public_meta_info_updated = callback
 

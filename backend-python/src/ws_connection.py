@@ -16,9 +16,9 @@ class WSConnection(NetworkConnection):
         super().__init__()
         self.ws = ws
 
-    def restoreConnection(self, ws: websocket.WebSocket):
+    def restore_connection(self, ws: websocket.WebSocket):
         self.ws = ws
-        self.onConnectionRestored()
+        self.on_connection_restored()
 
     def send_task(self, task: Task):
         clientTask = {"taskId": task.id}

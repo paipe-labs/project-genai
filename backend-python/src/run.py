@@ -296,7 +296,7 @@ def websocket_connection(ws):
                 if node_id in dispatcher.providers_map:
                     existing_provider = dispatcher.providers_map[node_id]
                     existing_provider.update_public_meta_info(public_meta)
-                    existing_provider.network_connection.on_connection_restored()
+                    existing_provider.network_connection.restore_connection(ws)
                 else:
                     private_meta = PrivateMetaInfo()
                     network_connection = WSConnection(ws)
