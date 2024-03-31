@@ -42,6 +42,9 @@ registered_providers = {}
 connections = {}
 
 
+def find_key_by_value(dict, value):
+    return next((k for k, v in dict.items() if v == value), None)
+
 def check_data_and_state(
     data: dict, from_comfy_inf: bool = False
 ) -> QueryValidationResult:
@@ -297,6 +300,11 @@ def websocket_connection(ws):
                     existing_provider = dispatcher.providers_map[node_id]
                     existing_provider.update_public_meta_info(public_meta)
                     existing_provider.network_connection.restore_connection(ws)
+
+                    previous_ws = find_key_by_value(registered_providers, node_id)
+                    registered_providers.pop(previous_ws)
+
+                    registered_providers[ws] = node_id
                 else:
                     private_meta = PrivateMetaInfo()
                     network_connection = WSConnection(ws)
