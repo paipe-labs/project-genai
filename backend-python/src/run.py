@@ -28,8 +28,12 @@ import uuid
 monkey.patch_all()
 
 app = Flask(__name__)
-CORS(app, allow_headers="*", origins="*",
-     methods="GET, POST, PATCH, PUT, DELETE, OPTIONS")
+CORS(
+    app,
+    allow_headers="*",
+    origins="*",
+    methods="GET, POST, PATCH, PUT, DELETE, OPTIONS",
+)
 sock = Sock(app)
 
 entry_queue = EntryQueue()
@@ -290,12 +294,14 @@ def websocket_connection(ws):
             msg_type = data_json.get("type")
             if msg_type == "register":
                 node_id = data_json.get("node_id")
-                metadata = data_json.get("metadata")
-                public_meta = PublicMetaInfo(models=metadata.get("models", []),
-                                             gpu_type=metadata.get("gpu_type", ""),
-                                             ncpu=metadata.get("ncpu", 0),
-                                             ram=metadata.get("ram", 0),
-                                             min_cost=10)
+                metadata = data_json.get("metadata", dict())
+                public_meta = PublicMetaInfo(
+                    models=metadata.get("models", []),
+                    gpu_type=metadata.get("gpu_type", ""),
+                    ncpu=metadata.get("ncpu", 0),
+                    ram=metadata.get("ram", 0),
+                    min_cost=10,
+                )
                 print(f"Node {node_id} connected")
                 if node_id in dispatcher.providers_map:
                     existing_provider = dispatcher.providers_map[node_id]
