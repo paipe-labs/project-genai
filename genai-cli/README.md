@@ -38,7 +38,7 @@ Each command can be run with `--help` option.
 	- current platforms supported: local, vastai
 ```bash
 docker compose run genai-cli create-node local wss://apiv2.paipe.io
-docker compose run genai-cli create-node vastai wss://apiv2.paipe.io--vastai-iid=7520880
+docker compose run genai-cli create-node vastai wss://apiv2.paipe.io --vastai-iid=7520880
 ```
 - `delete-node <node_id>` - deletes a node created via the local instance of the cli tool (as it has access only to those nodes stored in the local `CLI_NODES_DATA_FILE`)
 ```bash

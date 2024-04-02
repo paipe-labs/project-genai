@@ -91,7 +91,8 @@ def create_node(
             return
 
     else:
-        rprint("[red]Platform type not supported: [/red]{p}".format(p=platform))
+        rprint(
+            "[red]Platform type not supported: [/red]{p}".format(p=platform))
         return
 
     with open(NODES_DATA_FILE, "a", newline="") as data_file:
@@ -147,15 +148,6 @@ def delete_node(node_id: str):
     nodes_df = nodes_df[nodes_df["id"] != node_id]
     nodes_df.to_csv(NODES_DATA_FILE, index=False, sep=",")
     rprint("[green]Deleted node id:\n{id}[/green]".format(id=node_id))
-
-
-# @app.command()
-# def run_node(node_id: int):
-#     pass
-
-# @app.command()
-# def stop_node(node_id: int):
-#     pass
 
 
 @app.command("list", help="List currently running nodes")
