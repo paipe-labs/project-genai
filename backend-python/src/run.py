@@ -1,49 +1,45 @@
 from constants.env import ENFORCE_JWT_AUTH, HTTP_WS_PORT, WS_TASK_TIMEOUT
 from constants.static import TASK_RESULT_SCHEMA
 
+from dispatcher.util.logger import logger
 from dispatcher.dispatcher import Dispatcher
-from dispatcher.entry_queue import EntryQueue
 from dispatcher.meta_info import PrivateMetaInfo, PublicMetaInfo
 from dispatcher.provider import Provider
 from dispatcher.task import build_task_from_query
-from dispatcher.task_info import TaskResult
-from dispatcher.util.logger import logger
 from utils.query_check_result import QueryValidationResult
 
 from storage import StorageManager, UsersStorage
 from verification import verify
 from ws_connection import WSConnection
 
-from concurrent.futures import Future
-from gevent import monkey
-from gevent.pywsgi import WSGIServer
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-from flask_sock import Sock
-
 import json
 import jsonschema
 import uuid
+import asyncio
+import uvicorn
+from fastapi import FastAPI, WebSocket, Request, Response, status, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from websockets.exceptions import ConnectionClosed
 
-monkey.patch_all()
 
-app = Flask(__name__)
-CORS(
-    app,
-    allow_headers="*",
-    origins="*",
-    methods="GET, POST, PATCH, PUT, DELETE, OPTIONS",
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"]
 )
-sock = Sock(app)
 
-entry_queue = EntryQueue()
-dispatcher = Dispatcher(entry_queue)
+dispatcher = Dispatcher()
+
 storage_manager = StorageManager()
 users_storage = UsersStorage()
 
 registered_providers = {}
 
 connections = {}
+task_ready = {}
 
 
 def find_key_by_value(dict, value):
@@ -120,20 +116,19 @@ def check_data_and_state(
     return QueryValidationResult(is_ok=True)
 
 
-@app.route("/v1/client/hello/", methods=["POST"])
-def hello():
-    return (jsonify({"ok": True, "url": "ws://genai.edenvr.link/ws"}), 200)
+@app.get("/v1/client/hello/", status_code=200)
+@app.post("/v1/client/hello/", status_code=200)
+async def hello():
+    return {"ok": True, "url": "ws://genai.edenvr.link/ws"}
 
 
-@app.route("/v1/inference/comfyPipeline", methods=["POST"])
-def add_comfy_task():
-    data = request.get_json()
+@app.post("/v1/inference/comfyPipeline", status_code=202)
+async def add_comfy_task(request: Request, response: Response):
+    data = await request.get_json()
     query_validation_res = check_data_and_state(data, True)
     if not query_validation_res.is_ok:
-        return (
-            jsonify(query_validation_res.error_data),
-            query_validation_res.error_code,
-        )
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return query_validation_res.error_data
 
     task_id = str(uuid.uuid4())
     task = build_task_from_query(
@@ -149,32 +144,26 @@ def add_comfy_task():
     token = data.get("token")
     storage_manager.add_task(users_storage.get_user_id(token), task_id, task)
 
-    entry_queue.add_task(task, 0)
+    await dispatcher.add_task(task)
 
-    return (
-        jsonify(
-            {"ok": True, "message": "Task submitted successfully", "task_id": task_id}
-        ),
-        202,
-    )
+    return {"ok": True, "message": "Task submitted successfully", "task_id": task_id}
 
 
-@app.route("/v1/nodes/health/", methods=["GET"])
-def health():
+@app.get("/v1/nodes/health/", status_code=200)
+async def health(response: Response):
     if registered_providers != {}:
-        return (jsonify({"ok": True}), 200)
-    return (jsonify({"ok": False}), 500)
+        return {"ok": True}
+    response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    return {"ok": False}
 
 
-@app.route("/v1/images/generation/", methods=["POST"])
-def generate_image():
-    data = request.get_json()
+@app.post("/v1/images/generation/", status_code=202)
+async def generate_image(request: Request, response: Response):
+    data = await request.json()
     query_validation_res = check_data_and_state(data, False)
     if not query_validation_res.is_ok:
-        return (
-            jsonify(query_validation_res.error_data),
-            query_validation_res.error_code,
-        )
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return query_validation_res.error_data
 
     task_id = str(uuid.uuid4())
     task = build_task_from_query(
@@ -188,30 +177,25 @@ def generate_image():
     token = data.get("token")
     storage_manager.add_task(users_storage.get_user_id(token), task_id, task)
 
-    entry_queue.add_task(task, 0)
+    await dispatcher.add_task(task)
 
-    future = Future()
-    connections[task_id] = future
-
+    task_ready[task_id] = asyncio.Event()
     try:
-        response = connections[task_id].result(timeout=WS_TASK_TIMEOUT)
-    except Exception as e:
-        return (jsonify({"error": "Timeout waiting for WebSocket response"}), 504)
+        await asyncio.wait_for(task_ready[task_id].wait(), WS_TASK_TIMEOUT)
+    except TimeoutError:
+        response.status_code = status.HTTP_504_GATEWAY_TIMEOUT
+        return {"error": "Timeout waiting for WebSocket response"}
 
-    del connections[task_id]
-
-    return (jsonify({"ok": True, "result": {"images": response}}), 202)
+    return {"ok": True, "result": {"images": connections[task_id]}}
 
 
-@app.route("/v1/tasks/", methods=["POST"])
-def add_task():
-    data = request.get_json()
+@app.post("/v1/tasks/", status_code=201)
+async def add_task(request: Request, response: Response):
+    data = await request.json()
     query_validation_res = check_data_and_state(data, False)
     if not query_validation_res.is_ok:
-        return (
-            jsonify(query_validation_res.error_data),
-            query_validation_res.error_code,
-        )
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return query_validation_res.error_data
 
     task_id = str(uuid.uuid4())
     task = build_task_from_query(
@@ -225,138 +209,151 @@ def add_task():
     token = data.get("token")
     storage_manager.add_task(users_storage.get_user_id(token), task_id, task)
 
-    entry_queue.add_task(task, 0)
+    await dispatcher.add_task(task)
 
-    return (
-        jsonify(
-            {"ok": True, "message": "Task submitted successfully", "task_id": task_id}
-        ),
-        201,
-    )
+    return {"ok": True, "message": "Task submitted successfully", "task_id": task_id}
 
 
-@app.route("/v1/tasks/<task_id>", methods=["GET"])
-def get_task_info(task_id):
+@app.get("/v1/tasks/{task_id}", status_code=201)
+async def get_task_info(task_id, request: Request, response: Response):
     token = request.headers.get("token")
 
     if ENFORCE_JWT_AUTH and not verify(token):
-        return (jsonify({"ok": False, "error": "operation is not permitted"}), 401)
+        response.status_code = status.HTTP_401_UNAUTHORIZED
+        return {"ok": False, "error": "operation is not permitted"}
 
     task_data = storage_manager.get_task_data_with_verification(
         users_storage.get_user_id(token), task_id
     )
 
     if not task_data:
-        return (jsonify({"ok": False, "error": "No such task for this user"}), 403)
+        response.status_code = status.HTTP_403_FORBIDDEN
+        return {"ok": False, "error": "No such task for this user"}
 
-    return (
-        jsonify(
-            {
-                "ok": True,
-                "status": task_data["status"],
-                "result": task_data.get("result"),
-            }
-        ),
-        201,
-    )
+    return {
+        "ok": True,
+        "status": task_data["status"],
+        "result": task_data.get("result"),
+    }
 
 
-@app.route("/v1/tasks/", methods=["GET"])
-def get_tasks():
+@app.get("/v1/tasks/", status_code=200)
+async def get_tasks(request: Request, response: Response):
     token = request.headers.get("token")
 
     if ENFORCE_JWT_AUTH and not verify(token):
-        return (jsonify({"ok": False, "error": "operation is not permitted"}), 401)
+        response.status_code = status.HTTP_401_UNAUTHORIZED
+        return {"ok": False, "error": "operation is not permitted"}
 
     tasks = storage_manager.get_tasks(users_storage.get_user_id(token))
 
     if not tasks:
-        return (jsonify({"ok": False, "error": "No tasks for this user"}), 403)
+        response.status_code = status.HTTP_403_FORBIDDEN
+        return {"ok": False, "error": "No tasks for this user"}
 
     tasks_to_return = {
         task_id: {"status": task_data["status"],
                   "result": task_data.get("result")}
         for task_id, task_data in tasks.items()
     }
-    return (jsonify({"ok": True, "count": len(tasks), "data": tasks_to_return}), 200)
+    return {"ok": True, "count": len(tasks), "data": tasks_to_return}
 
 
-@sock.route("/")
-def websocket_connection(ws):
+@app.websocket("/")
+async def websocket_connection(ws: WebSocket):
+    await ws.accept()
     while True:
-        data = ws.receive()
+        try:
+            data = await ws.receive_text()
+        except (WebSocketDisconnect, ConnectionClosed):
+            if ws in registered_providers:
+                id_ = registered_providers[ws]
+                print(f"Node {id_} disconnected")
+                registered_providers.pop(ws)
+                provider = dispatcher.providers.get(id_)
+                if provider:
+                    await provider.on_connection_lost()
+            break
+        except Exception as e:
+            logger.error(str(e))
+            break
+
         if data == "close":
             if ws in registered_providers:
                 id_ = registered_providers[ws]
                 print(f"Node {id_} disconnected")
-                provider = dispatcher.providers_map.get(id_)
+                registered_providers.pop(ws)
+                provider = dispatcher.providers.get(id_)
                 if provider:
-                    provider.network_connection.on_connection_lost()
+                    await provider.on_connection_lost()
             break
+
+        data_json = json.loads(data)
+        msg_type = data_json.get("type")
+        if msg_type == "register":
+            node_id = data_json.get("node_id")
+            metadata = data_json.get("metadata", dict())
+            public_meta = PublicMetaInfo(
+                models=metadata.get("models", []),
+                gpu_type=metadata.get("gpu_type", ""),
+                ncpu=metadata.get("ncpu", 0),
+                ram=metadata.get("ram", 0)
+            )
+
+            print(f"Node {node_id} connected")
+            if node_id in dispatcher.providers:
+                existing_provider = dispatcher.providers[node_id]
+                existing_provider.update_public_meta_info(public_meta)
+                existing_provider.restore_connection(ws=ws)
+                print(f"Updated ws for {node_id}")
+            else:
+                private_meta = PrivateMetaInfo()
+                network_connection = WSConnection(ws)
+                provider = Provider(node_id, public_meta,
+                                    private_meta, network_connection)
+                dispatcher.add_provider(provider)
+
+            previous_ws = find_key_by_value(registered_providers, node_id)
+            if previous_ws is not None and previous_ws != ws:
+                registered_providers.pop(previous_ws)
+                logger.warn(
+                    f"Disconnected provider connection found saved in registered")
+
+            registered_providers[ws] = node_id
+
+            print(f"Registered providers: {registered_providers.values()}")
+
+        elif msg_type == "result":
+            try:
+                jsonschema.validate(instance=data_json,
+                                    schema=TASK_RESULT_SCHEMA)
+            except Exception as e:
+                logger.error(
+                    f"Task {data_json} was not recieved due to schema validation error: {e}")
+
+            task_id = data_json.get("taskId")
+            results_url = data_json.get("resultsUrl")
+
+            id_ = registered_providers.get(ws)
+            if id_ is None:
+                logger.warn(f"Not registered provider sent result: {ws}")
+                break
+
+            provider = dispatcher.providers.get(id_)
+            if provider is not None:
+                task_data = storage_manager.get_task_data(task_id)
+                if task_data:
+                    task = task_data.get("task")
+                    if task:
+                        provider.task_completed(task)
+                        storage_manager.add_result(task_id, results_url)
+
+            if task_id in task_ready:
+                connections[task_id] = results_url
+                task_ready[task_id].set()
         else:
-            data_json = json.loads(data)
-            msg_type = data_json.get("type")
-            if msg_type == "register":
-                node_id = data_json.get("node_id")
-                metadata = data_json.get("metadata", dict())
-                public_meta = PublicMetaInfo(
-                    models=metadata.get("models", []),
-                    gpu_type=metadata.get("gpu_type", ""),
-                    ncpu=metadata.get("ncpu", 0),
-                    ram=metadata.get("ram", 0),
-                    min_cost=10,
-                )
-                print(f"Node {node_id} connected")
-                if node_id in dispatcher.providers_map:
-                    existing_provider = dispatcher.providers_map[node_id]
-                    existing_provider.update_public_meta_info(public_meta)
-                    existing_provider.network_connection.restore_connection(ws)
-
-                    previous_ws = find_key_by_value(
-                        registered_providers, node_id)
-                    registered_providers.pop(previous_ws)
-
-                    registered_providers[ws] = node_id
-                else:
-                    private_meta = PrivateMetaInfo()
-                    network_connection = WSConnection(ws)
-                    provider = Provider(
-                        node_id, public_meta, private_meta, network_connection
-                    )
-                    dispatcher.add_provider(provider)
-                    registered_providers[ws] = node_id
-
-                print(
-                    f"Registered providers: {dispatcher.providers_map.keys()}")
-            elif msg_type == "result":
-                try:
-                    jsonschema.validate(instance=data_json,
-                                        schema=TASK_RESULT_SCHEMA)
-                except Exception as e:
-                    logger.error(
-                        f"Task {data_json} was not recieved due to schema validation error: {e}"
-                    )
-
-                task_id = data_json.get("taskId")
-                results_url = data_json.get("resultsUrl")
-                id_ = registered_providers[ws]
-                provider = dispatcher.providers_map.get(id_)
-
-                if provider is not None:
-                    task_data = storage_manager.get_task_data(task_id)
-                    if task_data:
-                        task = task_data.get("task")
-                        if task:
-                            task_result = TaskResult(results_url)
-                            provider.network_connection.on_task_completed(
-                                task, task_result
-                            )
-                            storage_manager.add_result(task_id, results_url)
-
-                if task_id in connections:
-                    connections[task_id].set_result(results_url)
+            logger.warn(f"Unknown message type: {msg_type}")
 
 
 if __name__ == "__main__":
-    http_server = WSGIServer(("0.0.0.0", HTTP_WS_PORT), app)
-    http_server.serve_forever()
+    uvicorn.run("run:app", host="0.0.0.0", port=HTTP_WS_PORT, reload=True)

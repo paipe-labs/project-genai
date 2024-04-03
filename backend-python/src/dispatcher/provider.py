@@ -5,7 +5,6 @@ import flask_sock
 
 from dispatcher.meta_info import PublicMetaInfo, PrivateMetaInfo
 from dispatcher.network_connection import NetworkConnection
-from dispatcher.provider_estimator import ProviderEstimator
 from dispatcher.task import Task
 from dispatcher.task_info import (
     FailedByProvider,
@@ -14,10 +13,6 @@ from dispatcher.task_info import (
     TaskResult,
 )
 from dispatcher.util.logger import logger
-
-# TODO: reevaluate & move
-NUM_RETRY_ATTEMPTS = 3
-OFFLINE_TIMEOUT = 3000
 
 
 class Provider:
@@ -32,14 +27,11 @@ class Provider:
         self._pub_meta_info = public_meta_info
         self._pr_meta_info = private_meta_info
         self._is_online = True
-        self._offline_timeout = None  # NodeJS.Timeout
 
         self._on_closed_callback: Union[Callable[[], None], None] = None
         self._on_updated_callback: Union[Callable[[], None], None] = None
 
         self._in_progress: set[Task] = set()
-        self._estimator = ProviderEstimator(
-            self._pub_meta_info, self._pr_meta_info)
 
         self._network_connection = network_connection
         self._network_connection.set_on_meta_info_updated(
@@ -58,32 +50,20 @@ class Provider:
         return self._network_connection
 
     @property
-    def estimator(self):
-        return self._estimator
-
-    @property
-    def queue_length(self):  # used to be a method
+    def queue_length(self):
         return len(self._in_progress)
 
     @property
     def waiting_time(self):
-        return self._estimator.waiting_time
+        return self.queue_length
 
     @property
-    def min_cost(self):  # used to be a method
-        if not self._is_online:
-            return inf
-        return self._pub_meta_info.min_cost
+    def tasks_in_progress(self):
+        return self._in_progress
 
     def start_offline(self):
         if self._offline_timeout is not None:
             return
-        # TODO
-        # self._offline_timeot = setTimeout(
-        # call dispose, on_closed
-        # 1000
-        # )
-
         self._is_online = False
         self.on_updated()
 
@@ -106,27 +86,24 @@ class Provider:
     # why is it mutable?
     def update_public_meta_info(self, meta_info: PublicMetaInfo):
         self._pub_meta_info = meta_info
-        self._estimator.update_public_meta_info(meta_info)
         self.on_updated()
 
     def update_private_meta_info(self, meta_info: PrivateMetaInfo):
         self._pr_meta_info = meta_info
-        self._estimator.update_private_meta_info(meta_info)
         self.on_updated()
 
     def schedule_task(self, task: Task):
         # logger.info("Task {task} scheduled in provider {provider}".format(task.id, self._id))
-        self._estimator.add_task(task)
         self.async_schedule_task(task)
 
     def async_schedule_task(self, task: Task):  # TODO make async)))
         try:
             # Assuming send_task is an async method of network_connection
+            self._in_progress.add(task)
             self.network_connection.send_task(task)
             task.in_progress = True
             return
         except flask_sock.ConnectionClosed:
-            # TODO: make sure task is rescheduled somewhere
             logger.warn(
                 "got ConnectionClosed exception on send_task in provider {id}".format(id=self._id))
             self.on_closed()
@@ -134,9 +111,6 @@ class Provider:
         except Exception as e:
             logger.error("unhandled exception in async_schedule_task:", e)
             return
-
-    def estimate_task_waiting_time(self, task: Task) -> int:
-        return self._estimator.estimate_task_time(task)
 
     def abort_task(self, task: Task):
         self.task_finished(task)
@@ -150,14 +124,12 @@ class Provider:
         # })();
 
     def task_finished(self, task: Task):
-        self._estimator.remove_task(task)
         self._in_progress.remove(task)
 
     def task_failed(self, task: Task, fail_reason: str):
         if task not in self._in_progress:
             return
         self.task_finished(task)
-        task.add_failed_attempt()
         task.set_status(FailedByProvider(reason=fail_reason))
         task.fail()
         self.on_updated()
