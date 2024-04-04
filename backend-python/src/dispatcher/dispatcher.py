@@ -6,14 +6,11 @@ from dispatcher.task_info import (
 from dispatcher.util.logger import logger
 
 import typing
+from typing import Optional
 
 # TODO: reevaluate & move
 MAX_PROVIDER_QUEUE_LEN = 50
 MAX_SCHEDULING_ATTEMPTS = 5
-
-
-def is_busy_provider(provider: Provider) -> bool:
-    return provider.queue_length > MAX_PROVIDER_QUEUE_LEN
 
 
 class Dispatcher:
@@ -30,8 +27,8 @@ class Dispatcher:
         for _ in range(MAX_SCHEDULING_ATTEMPTS):
             if self._schedule_task(task):
                 return
-            logger.warn("Task {id} failed to be scheduled".format(id=task.id))
-            task.fail()
+        logger.warn("Task {id} failed to be scheduled".format(id=task.id))
+        task.fail()
 
     def add_provider(self, provider: Provider) -> None:
         if provider.id in self._providers.keys():
@@ -41,7 +38,6 @@ class Dispatcher:
         self._providers[provider.id].set_on_closed(
             lambda: self.remove_provider(provider.id)
         )
-        # self._providers[provider.id].set_on_updated()
 
     def remove_provider(self, provider_id: str) -> None:
         if provider_id not in self._providers.keys():
@@ -54,18 +50,24 @@ class Dispatcher:
             self.add_task(task)
 
     def _schedule_task(self, task: Task) -> bool:
-        # TODO
-        for provider in self._providers.values():
-            if is_busy_provider(provider):
+        least_busy_id: Optional[str] = None
+        min_queue_length = MAX_PROVIDER_QUEUE_LEN
+        for provider in self.providers.values():
+            if provider.queue_length > MAX_PROVIDER_QUEUE_LEN:
                 continue
+            if least_busy_id is None or provider.queue_length < min_queue_length:
+                least_busy_id = provider.id
+                min_queue_length = provider.queue_length
 
-            task.set_status(ScheduledPayload(
-                provider_id=provider.id,
-                min_score=0,
-                waiting_time=provider.waiting_time
-            ))
-            provider.schedule_task(task)
-            return True
+        if least_busy_id is None:
+            # TODO: allocate one?
+            logger.info("Not found provider for task {id}".format(id=task.id))
+            return False
 
-        logger.info("Not found provider for task {id}".format(id=task.id))
-        return False
+        task.set_status(ScheduledPayload(
+            provider_id=least_busy_id,
+            min_score=0,
+            waiting_time=self._providers[least_busy_id].waiting_time
+        ))
+        self._providers[least_busy_id].schedule_task(task)
+        return True

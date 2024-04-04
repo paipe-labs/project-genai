@@ -1,5 +1,5 @@
 from math import inf
-from typing import Callable, Union
+from typing import Callable, Optional
 
 import flask_sock
 
@@ -28,8 +28,8 @@ class Provider:
         self._pr_meta_info = private_meta_info
         self._is_online = True
 
-        self._on_closed_callback: Union[Callable[[], None], None] = None
-        self._on_updated_callback: Union[Callable[[], None], None] = None
+        self._on_closed_callback: Optional[Callable[[], None]] = None
+        self._on_updated_callback: Optional[Callable[[], None]] = None
 
         self._in_progress: set[Task] = set()
 
@@ -83,7 +83,6 @@ class Provider:
         self._is_online = True
         self.on_updated()
 
-    # why is it mutable?
     def update_public_meta_info(self, meta_info: PublicMetaInfo):
         self._pub_meta_info = meta_info
         self.on_updated()
@@ -125,6 +124,7 @@ class Provider:
 
     def task_finished(self, task: Task):
         self._in_progress.remove(task)
+        self.on_updated()
 
     def task_failed(self, task: Task, fail_reason: str):
         if task not in self._in_progress:
@@ -132,7 +132,6 @@ class Provider:
         self.task_finished(task)
         task.set_status(FailedByProvider(reason=fail_reason))
         task.fail()
-        self.on_updated()
 
     def task_completed(self, task: Task, result: TaskResult):
         if task not in self._in_progress:
@@ -140,7 +139,6 @@ class Provider:
         self.task_finished(task)
         task.set_status(TaskStatusPayload(task_status=TaskStatus.COMPLETED))
         task.complete(result)
-        self.on_updated()
 
     def set_on_closed(self, callback: Callable[[], None]):
         self._on_closed_callback = callback
