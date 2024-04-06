@@ -38,22 +38,28 @@ class Dispatcher:
         self._providers[provider.id].set_on_closed(
             lambda: self.remove_provider(provider.id)
         )
+        self._providers[provider.id].set_on_connection_lost(
+            lambda: self.reschedule_tasks_in_progress(provider.id)
+        )
 
     def remove_provider(self, provider_id: str) -> None:
+        self.reschedule_tasks_in_progress(provider_id)
+        self._providers.pop(provider_id, None)
+
+    def reschedule_tasks_in_progress(self, provider_id: str) -> None:
         if provider_id not in self._providers.keys():
             logger.warn(
                 "Provider {id} not in dispatcher".format(id=provider_id))
             return
 
-        provider = self._providers.pop(provider_id)
-        for task in provider.tasks_in_progress:
+        for task in self.providers[provider_id].tasks_in_progress:
             self.add_task(task)
 
     def _schedule_task(self, task: Task) -> bool:
         least_busy_id: Optional[str] = None
         min_queue_length = MAX_PROVIDER_QUEUE_LEN
         for provider in self.providers.values():
-            if provider.queue_length > MAX_PROVIDER_QUEUE_LEN:
+            if provider.queue_length > MAX_PROVIDER_QUEUE_LEN or not provider.is_online:
                 continue
             if least_busy_id is None or provider.queue_length < min_queue_length:
                 least_busy_id = provider.id

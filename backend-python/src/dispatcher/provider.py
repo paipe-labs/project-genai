@@ -29,14 +29,16 @@ class Provider:
         self._is_online = True
 
         self._on_closed_callback: Optional[Callable[[], None]] = None
-        self._on_updated_callback: Optional[Callable[[], None]] = None
+        # self._on_updated_callback: Optional[Callable[[], None]] = None
+        self._on_connection_lost_callback: Optional[Callable[[], None]] = None
 
         self._in_progress: set[Task] = set()
 
         self._network_connection = network_connection
         self._network_connection.set_on_meta_info_updated(
             self.update_public_meta_info)
-        self._network_connection.set_on_connection_lost(self.start_offline)
+        self._network_connection.set_on_connection_lost(
+            self.on_connection_lost)
         self._network_connection.set_on_connection_restored(self.stop_offline)
         self._network_connection.set_on_task_completed(self.task_completed)
         self._network_connection.set_on_task_failed(self.task_failed)
@@ -58,6 +60,10 @@ class Provider:
         return self.queue_length
 
     @property
+    def is_online(self):
+        return self.is_online
+
+    @property
     def tasks_in_progress(self):
         return self._in_progress
 
@@ -65,7 +71,7 @@ class Provider:
         if self._offline_timeout is not None:
             return
         self._is_online = False
-        self.on_updated()
+        # self.on_updated()
 
     def dispose(self):
         # TODO
@@ -81,15 +87,15 @@ class Provider:
         # clearTimeout(self._offline_timeout)
         self._offline_timeout = None
         self._is_online = True
-        self.on_updated()
+        # self.on_updated()
 
     def update_public_meta_info(self, meta_info: PublicMetaInfo):
         self._pub_meta_info = meta_info
-        self.on_updated()
+        # self.on_updated()
 
     def update_private_meta_info(self, meta_info: PrivateMetaInfo):
         self._pr_meta_info = meta_info
-        self.on_updated()
+        # self.on_updated()
 
     def schedule_task(self, task: Task):
         # logger.info("Task {task} scheduled in provider {provider}".format(task.id, self._id))
@@ -124,7 +130,7 @@ class Provider:
 
     def task_finished(self, task: Task):
         self._in_progress.remove(task)
-        self.on_updated()
+        # self.on_updated()
 
     def task_failed(self, task: Task, fail_reason: str):
         if task not in self._in_progress:
@@ -143,8 +149,11 @@ class Provider:
     def set_on_closed(self, callback: Callable[[], None]):
         self._on_closed_callback = callback
 
-    def set_on_updated(self, callback: Callable[[], None]):
-        self._on_updated_callback = callback
+    # def set_on_updated(self, callback: Callable[[], None]):
+    #     self._on_updated_callback = callback
+
+    def set_on_connection_lost(self, callback: Callable[[], None]):
+        self._on_connection_lost_callback = callback
 
     def on_closed(self):
         if self._on_closed_callback is None:
@@ -155,11 +164,21 @@ class Provider:
             return
         self._on_closed_callback()
 
-    def on_updated(self):
-        if self._on_updated_callback is None:
+    # def on_updated(self):
+    #     if self._on_updated_callback is None:
+    #         logger.warn(
+    #             "On updated callback not set in provider {id}".format(
+    #                 id=self._id)
+    #         )
+    #         return
+    #     self._on_updated_callback()
+
+    def on_connection_lost(self):
+        if self._on_connection_lost_callback is None:
             logger.warn(
-                "On updated callback not set in provider {id}".format(
+                "On connection lost callback not set in provider {id}".format(
                     id=self._id)
             )
             return
-        self._on_updated_callback()
+        self.start_offline()
+        self._on_connection_lost_callback()

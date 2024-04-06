@@ -114,7 +114,7 @@ def build_task_from_query(task_id: str, **kwargs) -> Task:
     )
 
     def on_failed():
-        task.set_status(TaskStatusPayload(task_status=TaskStatus.ABORTED))
+        task.set_status(TaskStatusPayload(task_status=TaskStatus.FAILED))
 
     def on_completed(result: TaskResult):
         task.set_status(TaskStatusPayload(task_status=TaskStatus.COMPLETED))
