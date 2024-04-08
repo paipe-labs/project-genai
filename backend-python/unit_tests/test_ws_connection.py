@@ -1,5 +1,7 @@
 import copy
 import sys
+import pytest
+import json
 sys.path.append("/backend-python/src")
 
 from dispatcher.task import build_task_from_query
@@ -8,21 +10,22 @@ from ws_connection import WSConnection
 COMMON_TASK_ID = "1"
 COMMON_TASK_DATA = {"max_cost": 15, "time_to_money_ratio": 1}
 
+pytest_plugins = ('pytest_asyncio',)
 
 class WSConnectionEchoMock:
     def __init__(self) -> None:
         self.payload = ""
 
-    def send(self, payload: str) -> None:
-        self.payload = payload
+    async def send_json(self, payload):
+        self.payload = json.dumps(payload)
 
-    def recv(self) -> str:
+    async def recv(self) -> str:
         payload = self.payload
         self.payload = ""
         return payload
 
-
-def test_ws_connection_valid_schema_standard():
+@pytest.mark.asyncio
+async def test_ws_connection_valid_schema_standard():
     task_data = copy.deepcopy(COMMON_TASK_DATA)
     standard_pipeline_options = {
         "standard_pipeline": {
@@ -38,14 +41,14 @@ def test_ws_connection_valid_schema_standard():
     echo = WSConnectionEchoMock()
     ws_connection = WSConnection(echo)
 
-    ws_connection.send_task(task)
+    await ws_connection.send_task(task)
     assert (
-        echo.recv()
+        await echo.recv()
         == """{"taskId": "1", "options": {"prompt": "space surfer", "model": "SD2.1", "size": {"height": 512, "width": 512}, "steps": null}, "comfyOptions": null}"""
     )
 
-
-def test_ws_connection_invalid_schema_standard():
+@pytest.mark.asyncio
+async def test_ws_connection_invalid_schema_standard():
     task_data = copy.deepcopy(COMMON_TASK_DATA)
     standard_pipeline_options = {
         "standard_pipeline": {
@@ -60,11 +63,11 @@ def test_ws_connection_invalid_schema_standard():
     echo = WSConnectionEchoMock()
     ws_connection = WSConnection(echo)
 
-    ws_connection.send_task(task)
-    assert echo.recv() == ""
+    await ws_connection.send_task(task)
+    assert await echo.recv() == ""
 
-
-def test_ws_connection_valid_schema_comfy():
+@pytest.mark.asyncio
+async def test_ws_connection_valid_schema_comfy():
     task_data = copy.deepcopy(COMMON_TASK_DATA)
     comfy_pipeline_options = {
         "comfy_pipeline": {
@@ -77,14 +80,14 @@ def test_ws_connection_valid_schema_comfy():
 
     echo = WSConnectionEchoMock()
     ws_connection = WSConnection(echo)
-    ws_connection.send_task(task)
+    await ws_connection.send_task(task)
     assert (
-        echo.recv()
+        await echo.recv()
         == """{"taskId": "1", "options": null, "comfyOptions": {"pipelineData": "somePipeline", "pipelineDependencies": {"images": "imageNameToImage map"}}}"""
     )
 
-
-def test_ws_connection_invalid_schema_comfy():
+@pytest.mark.asyncio
+async def test_ws_connection_invalid_schema_comfy():
     task_data = copy.deepcopy(COMMON_TASK_DATA)
     comfy_pipeline_options = {
         "comfy_pipeline": {
@@ -96,5 +99,5 @@ def test_ws_connection_invalid_schema_comfy():
 
     echo = WSConnectionEchoMock()
     ws_connection = WSConnection(echo)
-    ws_connection.send_task(task)
-    assert echo.recv() == ""
+    await ws_connection.send_task(task)
+    assert await echo.recv() == ""

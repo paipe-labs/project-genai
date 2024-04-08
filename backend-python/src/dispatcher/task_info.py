@@ -46,11 +46,6 @@ class TaskInfo:
     task_options: Optional[TaskOptions] = None
 
 
-@dataclass
-class TaskResult:
-    images: list[str]
-
-
 class TaskResultType(Enum):
     RESULT = auto()
     ERROR = auto()

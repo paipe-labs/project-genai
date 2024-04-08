@@ -1,20 +1,16 @@
-from dispatcher.util.logger import logger
-
-from datetime import datetime
-from flask import jsonify
 from dispatcher.task_info import (
     ScheduledPayload,
     ComfyPipelineOptions,
     TaskOptions,
     TaskStatus,
     TaskInfo,
-    TaskResult,
     TaskStatusPayload,
     StandardPipelineOptions,
     task_status_payload_to_string,
 )
 
 import typing
+from datetime import datetime
 
 
 class TaskLog(typing.NamedTuple):
@@ -28,9 +24,6 @@ class Task:
         self._status = TaskStatus.UNSCHEDULED
         self._log: list[TaskLog] = list()
         self._task_info = task_info
-
-        self._on_completed = None
-        self._on_failed = None
 
     @property
     def id(self):
@@ -72,26 +65,6 @@ class Task:
             for t, payload in self._log
         )
 
-    def set_on_completed(self, on_completed_callback) -> None:
-        self._on_completed = on_completed_callback
-
-    def set_on_failed(self, on_failed_callback) -> None:
-        self._on_failed = on_failed_callback
-
-    def complete(self, task_result: TaskResult) -> None:
-        if self._on_completed is None:
-            logger.error(
-                "on_completed callback not set in task {id}".format(self.id))
-        else:
-            self._on_completed(task_result)
-
-    def fail(self) -> None:
-        if self._on_failed is None:
-            logger.error(
-                "on_failed callback not set in task {id}".format(self.id))
-        else:
-            self._on_failed()
-
 
 def build_task_from_query(task_id: str, **kwargs) -> Task:
     max_cost = kwargs.get('max_cost')
@@ -112,15 +85,5 @@ def build_task_from_query(task_id: str, **kwargs) -> Task:
             })
         })
     )
-
-    def on_failed():
-        task.set_status(TaskStatusPayload(task_status=TaskStatus.FAILED))
-
-    def on_completed(result: TaskResult):
-        task.set_status(TaskStatusPayload(task_status=TaskStatus.COMPLETED))
-        return jsonify({'ok': True, 'result': result})
-
-    task.set_on_failed(on_failed)
-    task.set_on_completed(on_completed)
 
     return task

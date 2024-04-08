@@ -1,26 +1,22 @@
-import websocket
-import json
-import jsonschema
-
 from constants.static import TASK_SCHEMA
+
+from dispatcher.util.logger import logger
 from dispatcher.network_connection import NetworkConnection
 from dispatcher.task import Task
-import websocket
-import json
-from dispatcher.util.logger import logger
-from dataclasses import asdict
+
+from fastapi import WebSocket
+import jsonschema
 
 
 class WSConnection(NetworkConnection):
-    def __init__(self, ws: websocket.WebSocket):
+    def __init__(self, ws: WebSocket):
         super().__init__()
         self.ws = ws
 
-    def restore_connection(self, ws: websocket.WebSocket):
+    async def restore_connection(self, ws: WebSocket):
         self.ws = ws
-        self.on_connection_restored()
 
-    def send_task(self, task: Task):
+    async def send_task(self, task: Task):
         clientTask = {"taskId": task.id}
 
         clientTask["options"] = (
@@ -51,11 +47,11 @@ class WSConnection(NetworkConnection):
             )
             return
 
-        self.ws.send(json.dumps(clientTask))
+        await self.ws.send_json(clientTask)
 
-    def abortTask(self, task: Task):
+    async def abortTask(self, task: Task):
         clientTaskAbort = {
             "type": "abort",
             "taskId": task.id,
         }
-        self.ws.send(json.dumps(clientTaskAbort))
+        await self.ws.send_json(clientTaskAbort)
