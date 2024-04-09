@@ -1,0 +1,19 @@
+version: "3"
+
+services:
+  genai-cli:
+    build:
+      context: .
+      dockerfile: cli.dockerfile
+      args:
+        VASTAI_API_KEY: ${VASTAI_API_KEY}
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${CLI_NODES_DATA_FILE?CLI_NODES_DATA_FILE not set}:${NODES_DATA_FILE:-/cli/nodes.csv}
+
+    environment:
+      NODES_DATA_FILE: ${NODES_DATA_FILE:-/cli/nodes.csv}
+      DEFAULT_DOCKER_IMAGE: ${DEFAULT_DOCKER_IMAGE:-vvauijij/genai-node-comfyui}
+      DEFAULT_PROV_SCRIPT: ${DEFAULT_PROV_SCRIPT:-https://raw.githubusercontent.com/ai-dock/comfyui/main/config/provisioning/default.sh}
+
