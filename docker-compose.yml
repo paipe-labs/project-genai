@@ -10,7 +10,10 @@ services:
       DEBUG: true
       ENFORCE_JWT_AUTH: false
       WS_TASK_TIMEOUT: 10
+      GRPC_SERVER_ADDR: ${GRPC_SERVER_ADDR:-scaler:51075}
     # TODO: pass self url as command line argument
+    depends_on:
+      - scaler
 
   # https://github.com/ai-dock/comfyui
   node-aidock-comfyui:
@@ -41,6 +44,21 @@ services:
                 node public/run.js -b ws://server:8080/ -i localhost:8188 -t comfyUI"
     depends_on:
       - server
+    
+  scaler:
+    build:
+      context: ./
+      dockerfile: scaler/scaler.dockerfile
+      args:
+        VASTAI_API_KEY: ${VASTAI_API_KEY}
+    ports:
+      - 51075:51075
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      SERVER_ADDR: ${GRPC_SERVER_ADDR:-0.0.0.0:51075}
+      DEFAULT_DOCKER_IMAGE: ${DEFAULT_DOCKER_IMAGE:-vvauijij/genai-node-comfyui}
+      DEFAULT_PROV_SCRIPT: ${DEFAULT_PROV_SCRIPT:-https://raw.githubusercontent.com/ai-dock/comfyui/main/config/provisioning/default.sh}
 
   e2e-tests:
     build:
