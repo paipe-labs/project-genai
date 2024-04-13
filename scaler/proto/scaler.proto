@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package scaler_grpc;
+
+import "google/protobuf/empty.proto";
+
+service Scaler {
+    rpc CreateNode(CreateNodeRequest) returns (CreateNodeResponse) {}
+    rpc DeleteNode(DeleteNodeRequest) returns (DeleteNodeResponse) {}
+    rpc ListNodes(google.protobuf.Empty) returns (ListNodesResponse) {}
+}
+
+message NodeInfo {
+    string node_id = 1;
+    string platform = 2;
+    string backend = 3;
+    string image = 4;
+}
+
+message CreateNodeRequest {
+    string platform = 1;
+    string backend = 2;
+    string image = 3;
+    string prov_script = 4;
+    optional int32 vastai_iid = 5;
+}
+
+message CreateNodeResponse {
+    string node_id = 1;
+}
+
+message DeleteNodeRequest {
+    string node_id = 1;
+}
+
+message DeleteNodeResponse {
+}
+
+message ListNodesResponse {
+    repeated NodeInfo nodes = 1;
+}
