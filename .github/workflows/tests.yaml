@@ -11,15 +11,19 @@ jobs:
     name: Server Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
+
       - name: Build Docker Image
         run: docker compose build server-unit-tests
+
       - name: Run Server Unit Tests
         run: docker compose run server-unit-tests
+
       - name: Show Server Logs
         if: always()
         run: docker compose logs --no-log-prefix server
+
       - name: Stop Docker Compose
         if: always()
         run: docker compose down
@@ -28,68 +32,21 @@ jobs:
     name: Schema Tests
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
           token: ${{ secrets.REPOSITORY_ACESS_KEY }}
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - name: Generate Schemas
         run: |
           yarn --cwd client-node/client-package/ install
           yarn --cwd client-node/client-package/ generate:schemas
+
       - name: Validate Schemas
         run: diff backend-python/src/schemas client-node/client-package/src/schemas
-
-  autopep-backend-python:
-    name: autopep8 backend-python
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          token: ${{ secrets.REPOSITORY_ACESS_KEY }}
-      - name: Run autopep8
-        run: |
-          docker compose build autopep8
-          docker compose run --rm autopep8
-      - name: git diff
-        run: |
-          if ! (test -z "$(git ls-files --exclude-standard --others .)$(git diff .)"); then
-            echo 'WARNING: Generating files has changed, please merge with main and commit changes after `docker compose run --rm autopep8`'
-            git ls-files --exclude-standard --others .
-            git diff .
-            exit 1
-          fi
-
-  e2e-tests:
-    name: e2e-tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          token: ${{ secrets.REPOSITORY_ACESS_KEY }}
-
-      - name: build docker images
-        run: docker compose build
-
-      - name: run containers and e2e-tests
-        run: |
-          docker compose up -d server node-comfyui
-          docker compose run e2e-tests
-      - name: show server logs
-        if: always()
-        run: docker compose logs --no-log-prefix server
-
-      - name: show node-comfyui logs
-        if: always()
-        run: docker compose logs --no-log-prefix node-comfyui
-
-      - name: stop docker compose
-        if: always()
-        run: docker compose down

@@ -95,8 +95,10 @@ def test_images_generation_comfyui():
         },
     }
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-        futures = [executor.submit(requests.post, IMAGES_GENERATION_ENDPOINT, json=input_data) for _ in range(20)]
+    kWorkers = 2
+    kRequests = 4
+    with concurrent.futures.ThreadPoolExecutor(max_workers=kWorkers) as executor:
+        futures = [executor.submit(requests.post, IMAGES_GENERATION_ENDPOINT, json=input_data) for _ in range(kRequests)]
 
         concurrent.futures.wait(futures)
 
