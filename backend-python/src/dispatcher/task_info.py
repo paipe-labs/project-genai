@@ -82,7 +82,7 @@ class ScheduledPayload(TaskStatusPayload):
 @dataclass(kw_only=True)
 class FailedByProvider(TaskStatusPayload):
     reason: str
-    task_status = TaskStatus.FAILED
+    task_status: TaskStatus = TaskStatus.FAILED
 
 
 def task_status_payload_to_string(payload: TaskStatusPayload) -> str:

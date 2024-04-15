@@ -34,7 +34,8 @@ class Provider:
         self._is_online = True
         self._offline_event: asyncio.Event
 
-        self._on_closed_callback: Optional[Callable[[], None]] = None
+        self._on_closed_callback: Optional[Callable[[
+        ], Awaitable[None]]] = None
         self._on_connection_lost_callback: Optional[Callable[[
         ], Awaitable[None]]] = None
 
@@ -58,24 +59,26 @@ class Provider:
     def tasks_in_progress(self):
         return self._in_progress
 
-    def start_offline(self):
-        if self._offline_timeout is not None:
+    async def start_offline(self):
+        if not self._is_online:
+            logger.warning("start_offline called twice")
             return
+
         self._is_online = False
-        # TODO
-        # self._offline_event = asyncio.Event()
-        # await asyncio.wait_for(self._offline_event, OFFLINE_TIMEOUT)
-        # if not self._offline_event.set():
-        #     for task in self._in_progress:
-        #         task.set_status(FailedByProvider(reason="Provider is offline"))
-        #         self.on_closed()
+        self._offline_event = asyncio.Event()
+        try:
+            await asyncio.wait_for(self._offline_event.wait(), OFFLINE_TIMEOUT)
+        except TimeoutError:
+            for task in self._in_progress:
+                task.set_status(FailedByProvider(reason="Provider is offline"))
+            await self.on_closed()
 
     def stop_offline(self):
-        if self._offline_timeout is None:
+        if self._is_online:
+            logger.warning("stop_offline called twice")
             return
-        # TODO
-        self._offline_timeout = None
         self._is_online = True
+        self._offline_event.set
 
     def restore_connection(self, ws: WebSocket):
         self._network_connection.restore_connection(ws)
@@ -92,11 +95,10 @@ class Provider:
         try:
             self._in_progress.add(task)
             await self._network_connection.send_task(task)
-            task.in_progress = True
         except (ConnectionClosed, WebSocketDisconnect):
             logger.warn(
                 "got ConnectionClosed exception on send_task in provider {id}".format(id=self._id))
-            self.on_closed()
+            await self.on_closed()
         except Exception as e:
             logger.error("unhandled exception in schedule_task:", e)
 
@@ -112,7 +114,7 @@ class Provider:
         except (ConnectionClosed, WebSocketDisconnect):
             logger.warn(
                 "got ConnectionClosed exception on abort_task in provider {id}".format(id=self._id))
-            self.on_closed()
+            await self.on_closed()
         except Exception as e:
             logger.error("unhandled exception in abort_tas:", e)
 
@@ -134,14 +136,14 @@ class Provider:
     def set_on_connection_lost(self, callback: Callable[[], None]):
         self._on_connection_lost_callback = callback
 
-    def on_closed(self):
+    async def on_closed(self):
         if self._on_closed_callback is None:
             logger.warn(
                 "On updated callback not set in provider {id}".format(
                     id=self._id)
             )
             return
-        self._on_closed_callback()
+        await self._on_closed_callback()
 
     async def on_connection_lost(self):
         if self._on_connection_lost_callback is None:
@@ -150,5 +152,5 @@ class Provider:
                     id=self._id)
             )
             return
-        self.start_offline()
+        await self.start_offline()
         await self._on_connection_lost_callback()

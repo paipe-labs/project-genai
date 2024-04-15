@@ -10,7 +10,7 @@ class NetworkConnection:
 
     async def send_task(self, task: Task):
         task.set_status(TaskStatusPayload(
-            task_status=TaskStatus.SENT_TO_PROVIDER))
+            task_status=TaskStatus.SENT))
 
     async def abort_task(self, task: Task):
         task.set_status(TaskStatusPayload(task_status=TaskStatus.ABORTED))

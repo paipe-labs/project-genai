@@ -31,9 +31,12 @@ class Dispatcher:
             logger.warn("Provider {id} already added".format(id=provider.id))
             return
         self._providers[provider.id] = provider
+
+        async def remove_this_provider():
+            await self.remove_provider(provider.id)
+
         self._providers[provider.id].set_on_closed(
-            lambda: self.remove_provider(provider.id)
-        )
+            remove_this_provider)
 
         async def reschedule_this_providers_tasks():
             await self.reschedule_tasks_in_progress(provider.id)
@@ -41,8 +44,8 @@ class Dispatcher:
         self._providers[provider.id].set_on_connection_lost(
             reschedule_this_providers_tasks)
 
-    def remove_provider(self, provider_id: str) -> None:
-        self.reschedule_tasks_in_progress(provider_id)
+    async def remove_provider(self, provider_id: str) -> None:
+        await self.reschedule_tasks_in_progress(provider_id)
         self._providers.pop(provider_id, None)
 
     async def reschedule_tasks_in_progress(self, provider_id: str) -> None:
@@ -53,6 +56,7 @@ class Dispatcher:
 
         for task in self.providers[provider_id].tasks_in_progress:
             await self.add_task(task)
+        self.providers[provider_id].tasks_in_progress.clear()
 
     async def _schedule_task(self, task: Task) -> bool:
         least_busy_id: Optional[str] = None
