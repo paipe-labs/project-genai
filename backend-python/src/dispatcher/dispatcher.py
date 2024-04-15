@@ -1,6 +1,7 @@
 from dispatcher.util.logger import logger
 from dispatcher.provider import Provider
 from dispatcher.task import Task
+from dispatcher.task_info import TaskStatus, TaskStatusPayload
 from dispatcher.task_info import ScheduledPayload
 
 from typing import Optional
@@ -23,7 +24,7 @@ class Dispatcher:
             if await self._schedule_task(task):
                 return
         logger.warn("Task {id} failed to be scheduled".format(id=task.id))
-        task.fail()
+        task.set_status(TaskStatusPayload(task_status=TaskStatus.FAILED))
 
     def add_provider(self, provider: Provider) -> None:
         if provider.id in self._providers.keys():
