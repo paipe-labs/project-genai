@@ -17,12 +17,12 @@ services:
     image: genai-node-aidock-comfyui
     build:
       context: client-node
-      dockerfile: build/client-node-inference.dockerfile
+      dockerfile: build/aidock-comfyui/client-node.dockerfile
       args:
-        INFERENCE_IMAGE: ghcr.io/ai-dock/comfyui
-        INFERENCE_TAG: latest-cpu
+        AIDOCK_COMFYUI_IMAGE: ghcr.io/ai-dock/comfyui
+        AIDOCK_COMFYUI_TAG: latest-cpu
     entrypoint: sh -c "
-                ./aidock-comfyui/test_run_comfyui.sh &
+                /aidock-comfyui/test_run_comfyui.sh &
                 node public/run.js -b ws://server:8080/ -i localhost:8188 -t comfyUI"
     depends_on:
       - server
@@ -32,12 +32,12 @@ services:
     image: genai-node-cog-comfyui
     build:
       context: client-node
-      dockerfile: build/client-node-inference.dockerfile
+      dockerfile: build/cog-comfyui/client-node.dockerfile
       args:
-        INFERENCE_IMAGE: ghcr.io/paipe-labs/cog-comfyui
-        INFERENCE_TAG: latest
+        COG_COMFYUI_IMAGE: ghcr.io/paipe-labs/cog-comfyui
+        COG_COMFYUI_TAG: latest
     entrypoint: sh -c "
-                ./cog-comfyui/test_run_comfyui.sh &
+                /cog-comfyui/test_run_comfyui.sh &
                 node public/run.js -b ws://server:8080/ -i localhost:8188 -t comfyUI"
     depends_on:
       - server
