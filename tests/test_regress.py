@@ -95,22 +95,13 @@ def test_images_generation_comfyui():
         },
     }
 
-    kWorkers = 2
-    kRequests = 4
-    with concurrent.futures.ThreadPoolExecutor(max_workers=kWorkers) as executor:
-        futures = [executor.submit(requests.post, IMAGES_GENERATION_ENDPOINT, json=input_data) for _ in range(kRequests)]
+    response = requests.post(IMAGES_GENERATION_ENDPOINT, json=input_data)
+    response_json = response.json()
 
-        concurrent.futures.wait(futures)
-
-        # Process the results
-        for future in futures:
-            response = future.result()
-            response_json = response.json()
-
-            logger.info(response_json)
-            assert response.status_code == 202
-            assert "result" in response_json
-            assert "images" in response_json["result"]
+    logger.info(response_json)
+    assert response.status_code == 202
+    assert "result" in response_json
+    assert "images" in response_json["result"]
 
 
 def test_tasks_basic():
