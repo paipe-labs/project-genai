@@ -1,0 +1,88 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  aidock-comfyui-e2e-tests:
+    name: E2E Tests with https://github.com/ai-dock/comfyui Inference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free Space
+        run: |
+          df -h
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          df -h
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.REPOSITORY_ACESS_KEY }}
+
+      - name: Build Docker Images
+        run: docker compose build server node-aidock-comfyui e2e-tests
+
+      - name: Run Containers and E2E Tests
+        run: |
+          docker compose up -d server node-aidock-comfyui
+          docker compose run e2e-tests
+      - name: Show Server Logs
+        if: always()
+        run: docker compose logs --no-log-prefix server
+
+      - name: Show Node Logs
+        if: always()
+        run: docker compose logs --no-log-prefix node-aidock-comfyui
+
+      - name: Stop Docker Compose
+        if: always()
+        run: docker compose down
+
+  cog-comfyui-e2e-tests:
+    name: E2E Tests with https://github.com/fofr/cog-comfyui Inference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free Space
+        run: |
+          df -h
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          df -h
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.REPOSITORY_ACESS_KEY }}
+
+      - name: Build Docker Images
+        run: docker compose build server node-cog-comfyui e2e-tests
+
+      - name: Run Containers and E2E Tests
+        run: |
+          docker compose up -d server node-cog-comfyui
+          docker compose run e2e-tests
+      - name: Show Server Logs
+        if: always()
+        run: docker compose logs --no-log-prefix server
+
+      - name: Show Node Logs
+        if: always()
+        run: docker compose logs --no-log-prefix node-cog-comfyui
+
+      - name: Stop Docker Compose
+        if: always()
+        run: docker compose down

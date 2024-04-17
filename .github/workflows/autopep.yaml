@@ -1,0 +1,30 @@
+name: Autopep
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  autopep-backend-python:
+    name: autopep8 backend-python
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.REPOSITORY_ACESS_KEY }}
+      - name: Run autopep8
+        run: |
+          docker compose build autopep8
+          docker compose run --rm autopep8
+      - name: git diff
+        run: |
+          if ! (test -z "$(git ls-files --exclude-standard --others .)$(git diff .)"); then
+            echo 'WARNING: Generating files has changed, please merge with main and commit changes after `docker compose run --rm autopep8`'
+            git ls-files --exclude-standard --others .
+            git diff .
+            exit 1
+          fi
