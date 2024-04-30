@@ -1,6 +1,7 @@
 from enum import Enum, auto
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Optional
+import json
 
 
 class TaskStatus(Enum):
@@ -21,11 +22,23 @@ class PublicTaskStatus(Enum):
     SUCCESS = auto()
     PENDING = auto()
 
+def get_public_status(status: int) -> PublicTaskStatus:
+    if TaskStatus(status) == COMPLETED:
+        return PublicTaskStatus.SUCCESS
+    return PublicTaskStatus.PENDING
 
 @dataclass
 class ComfyPipelineOptions:
     pipeline_data: str
     pipeline_dependencies: str
+
+    @property
+    def __dict__(self):
+        return asdict(self)
+
+    @property
+    def json(self):
+        return json.dumps(self.__dict__)
 
 
 @dataclass
@@ -35,11 +48,32 @@ class StandardPipelineOptions:
     size: Optional[str] = None
     steps: Optional[int] = None
 
+    @property
+    def __dict__(self):
+        return asdict(self)
+
+    @property
+    def json(self):
+        return json.dumps(self.__dict__)
+
 
 @dataclass
 class TaskOptions:
     comfy_pipeline: Optional[ComfyPipelineOptions] = None
     standard_pipeline: Optional[StandardPipelineOptions] = None
+
+    @property
+    def __dict__(self):
+        print('22222')
+        return {
+            'comfy_pipeline':  self.comfy_pipeline.__dict__ if  self.comfy_pipeline else None,
+            'standard_pipeline':  self.standard_pipeline.__dict__ if  self.standard_pipeline else None
+        }
+
+    @property
+    def json(self):
+        return json.dumps(self.__dict__)
+
 
 
 @dataclass
@@ -48,6 +82,21 @@ class TaskInfo:
     max_cost: int
     time_to_money_ratio: int
     task_options: Optional[TaskOptions] = None
+
+    @property
+    def __dict__(self):
+        print('11111')
+        # print(self.task_options.__dict__)
+        return {
+            'id': self.id,
+            'max_cost': self.max_cost,
+            'time_to_money_ratio':  self.time_to_money_ratio,
+            'task_options':  self.task_options.__dict__ if self.task_options else None
+        }
+
+    @property
+    def json(self):
+        return json.dumps(self.__dict__)
 
 
 @dataclass

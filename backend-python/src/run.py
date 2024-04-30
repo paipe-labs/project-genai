@@ -6,9 +6,10 @@ from dispatcher.entry_queue import EntryQueue
 from dispatcher.meta_info import PrivateMetaInfo, PublicMetaInfo
 from dispatcher.provider import Provider
 from dispatcher.task import build_task_from_query
-from dispatcher.task_info import TaskResult
+from dispatcher.task_info import TaskResult, get_public_status
 from dispatcher.util.logger import logger
 from utils.query_check_result import QueryValidationResult
+from utils.uuid import get_64bit_uuid
 
 from storage import StorageManager, UsersStorage
 from verification import verify
@@ -23,7 +24,6 @@ from flask_sock import Sock
 
 import json
 import jsonschema
-import uuid
 
 monkey.patch_all()
 
@@ -135,9 +135,9 @@ def add_comfy_task():
             query_validation_res.error_code,
         )
 
-    task_id = str(uuid.uuid4())
+    task_id = uuid.uuid16()
     task = build_task_from_query(
-        task_id,
+        str(task_id),
         max_cost=data.get("max_cost", 15),
         time_to_money_ratio=data.get("time_to_money_ratio", 1),
         comfy_pipeline={
@@ -153,7 +153,7 @@ def add_comfy_task():
 
     return (
         jsonify(
-            {"ok": True, "message": "Task submitted successfully", "task_id": task_id}
+            {"ok": True, "message": "Task submitted successfully", "task_id": str(task_id)}
         ),
         202,
     )
@@ -176,9 +176,9 @@ def generate_image():
             query_validation_res.error_code,
         )
 
-    task_id = str(uuid.uuid4())
+    task_id = get_64bit_uuid()
     task = build_task_from_query(
-        task_id,
+        str(task_id),
         max_cost=data.get("max_cost", 15),
         time_to_money_ratio=data.get("time_to_money_ratio", 1),
         standard_pipeline=data.get("standardPipeline"),
@@ -191,14 +191,14 @@ def generate_image():
     entry_queue.add_task(task, 0)
 
     future = Future()
-    connections[task_id] = future
+    connections[str(task_id)] = future
 
     try:
-        response = connections[task_id].result(timeout=WS_TASK_TIMEOUT)
+        response = connections[str(task_id)].result(timeout=WS_TASK_TIMEOUT)
     except Exception as e:
         return (jsonify({"error": "Timeout waiting for WebSocket response"}), 504)
 
-    del connections[task_id]
+    del connections[str(task_id)]
 
     return (jsonify({"ok": True, "result": {"images": response}}), 202)
 
@@ -213,9 +213,9 @@ def add_task():
             query_validation_res.error_code,
         )
 
-    task_id = str(uuid.uuid4())
+    task_id = get_64bit_uuid()
     task = build_task_from_query(
-        task_id,
+        str(task_id),
         max_cost=data.get("max_cost", 15),
         time_to_money_ratio=data.get("time_to_money_ratio", 1),
         standard_pipeline=data.get("standardPipeline"),
@@ -229,7 +229,7 @@ def add_task():
 
     return (
         jsonify(
-            {"ok": True, "message": "Task submitted successfully", "task_id": task_id}
+            {"ok": True, "message": "Task submitted successfully", "task_id": str(task_id)}
         ),
         201,
     )
@@ -253,7 +253,7 @@ def get_task_info(task_id):
         jsonify(
             {
                 "ok": True,
-                "status": task_data["status"],
+                "status": get_public_status(task_data.status),
                 "result": task_data.get("result"),
             }
         ),
@@ -274,7 +274,7 @@ def get_tasks():
         return (jsonify({"ok": False, "error": "No tasks for this user"}), 403)
 
     tasks_to_return = {
-        task_id: {"status": task_data["status"],
+        task_id: {"status": get_public_status(task_data["status"]),
                   "result": task_data.get("result")}
         for task_id, task_data in tasks.items()
     }
