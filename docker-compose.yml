@@ -12,44 +12,44 @@ services:
       WS_TASK_TIMEOUT: 10
     # TODO: pass self url as command line argument
 
-  # https://github.com/ai-dock/comfyui
-  node-aidock-comfyui:
-    image: genai-node-aidock-comfyui
-    build:
-      context: client-node
-      dockerfile: build/aidock-comfyui/client-node.dockerfile
-      args:
-        AIDOCK_COMFYUI_IMAGE: ghcr.io/ai-dock/comfyui
-        AIDOCK_COMFYUI_TAG: latest-cpu
-    entrypoint: sh -c "
-                /aidock-comfyui/test_run_comfyui.sh &
-                node public/run.js -b ws://server:8080/ -i localhost:8188 -t comfyUI"
-    depends_on:
-      - server
+  # # https://github.com/ai-dock/comfyui
+  # node-aidock-comfyui:
+  #   image: genai-node-aidock-comfyui
+  #   build:
+  #     context: client-node
+  #     dockerfile: build/aidock-comfyui/client-node.dockerfile
+  #     args:
+  #       AIDOCK_COMFYUI_IMAGE: ghcr.io/ai-dock/comfyui
+  #       AIDOCK_COMFYUI_TAG: latest-cpu
+  #   entrypoint: sh -c "
+  #               /aidock-comfyui/test_run_comfyui.sh &
+  #               node public/run.js -b ws://server:8080/ -i localhost:8188 -t comfyUI"
+  #   depends_on:
+  #     - server
   
-  # https://github.com/fofr/cog-comfyui
-  node-cog-comfyui:
-    image: genai-node-cog-comfyui
-    build:
-      context: client-node
-      dockerfile: build/cog-comfyui/client-node.dockerfile
-      args:
-        COG_COMFYUI_IMAGE: ghcr.io/paipe-labs/cog-comfyui
-        COG_COMFYUI_TAG: latest
-    entrypoint: sh -c "
-                /cog-comfyui/test_run_comfyui.sh &
-                node public/run.js -b ws://server:8080/ -i localhost:8188 -t comfyUI"
-    depends_on:
-      - server
+  # # https://github.com/fofr/cog-comfyui
+  # node-cog-comfyui:
+  #   image: genai-node-cog-comfyui
+  #   build:
+  #     context: client-node
+  #     dockerfile: build/cog-comfyui/client-node.dockerfile
+  #     args:
+  #       COG_COMFYUI_IMAGE: ghcr.io/paipe-labs/cog-comfyui
+  #       COG_COMFYUI_TAG: latest
+  #   entrypoint: sh -c "
+  #               /cog-comfyui/test_run_comfyui.sh &
+  #               node public/run.js -b ws://server:8080/ -i localhost:8188 -t comfyUI"
+  #   depends_on:
+  #     - server
 
-  e2e-tests:
-    build:
-      context: tests
-      dockerfile: tests.dockerfile
-    environment:
-      SERVER_URL: "http://server:8080"
-    depends_on:
-      - server
+  # e2e-tests:
+  #   build:
+  #     context: tests
+  #     dockerfile: tests.dockerfile
+  #   environment:
+  #     SERVER_URL: "http://server:8080"
+  #   depends_on:
+  #     - server
     
   server-unit-tests:
     build:
@@ -57,12 +57,12 @@ services:
       dockerfile: backend.dockerfile
     entrypoint: pytest
 
-  autopep8:
-    build:
-      context: backend-python
-      dockerfile: utils.dockerfile
-    entrypoint: ["autopep8"]
-    working_dir: /code
-    command: ["--in-place", "--recursive", "/code/src"]
-    volumes:
-      - ./backend-python/src:/code/src
+  # autopep8:
+  #   build:
+  #     context: backend-python
+  #     dockerfile: utils.dockerfile
+  #   entrypoint: ["autopep8"]
+  #   working_dir: /code
+  #   command: ["--in-place", "--recursive", "/code/src"]
+  #   volumes:
+  #     - ./backend-python/src:/code/src
