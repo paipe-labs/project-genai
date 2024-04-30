@@ -6,7 +6,6 @@ from dispatcher.task_info import ScheduledPayload
 
 from typing import Optional
 
-# TODO
 MAX_PROVIDER_QUEUE_LEN = 50
 MAX_SCHEDULING_ATTEMPTS = 5
 
@@ -54,9 +53,10 @@ class Dispatcher:
                 "Provider {id} not in dispatcher".format(id=provider_id))
             return
 
-        for task in self.providers[provider_id].tasks_in_progress:
+        provider = self.providers.pop(provider_id)
+        for task in provider.tasks_in_progress:
             await self.add_task(task)
-        self.providers[provider_id].tasks_in_progress.clear()
+        provider.tasks_in_progress.clear()
 
     async def _schedule_task(self, task: Task) -> bool:
         least_busy_id: Optional[str] = None
@@ -69,7 +69,6 @@ class Dispatcher:
                 min_queue_length = provider.queue_length
 
         if least_busy_id is None:
-            # TODO: allocate one?
             logger.info("Not found provider for task {id}".format(id=task.id))
             return False
 

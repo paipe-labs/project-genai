@@ -91,7 +91,6 @@ class Provider:
         self._pr_meta_info = meta_info
 
     async def schedule_task(self, task: Task):
-        # logger.info("Task {task} scheduled in provider {provider}".format(task.id, self._id))
         try:
             self._in_progress.add(task)
             await self._network_connection.send_task(task)
@@ -100,7 +99,8 @@ class Provider:
                 "got ConnectionClosed exception on send_task in provider {id}".format(id=self._id))
             await self.on_closed()
         except Exception as e:
-            logger.error("unhandled exception in schedule_task:", e)
+            logger.error(f"unhandled exception in schedule_task: {e}")
+            await self.on_closed()
 
     async def abort_task(self, task: Task):
         if task not in self._in_progress:
@@ -116,7 +116,8 @@ class Provider:
                 "got ConnectionClosed exception on abort_task in provider {id}".format(id=self._id))
             await self.on_closed()
         except Exception as e:
-            logger.error("unhandled exception in abort_tas:", e)
+            logger.error(f"unhandled exception in abort_task: {e}")
+            await self.on_closed()
 
     def task_failed(self, task: Task, fail_reason: str):
         if task not in self._in_progress:
