@@ -22,10 +22,12 @@ class PublicTaskStatus(Enum):
     SUCCESS = auto()
     PENDING = auto()
 
+
 def get_public_status(status: int) -> PublicTaskStatus:
     if TaskStatus(status) == COMPLETED:
         return PublicTaskStatus.SUCCESS
     return PublicTaskStatus.PENDING
+
 
 @dataclass
 class ComfyPipelineOptions:
@@ -66,14 +68,13 @@ class TaskOptions:
     def __dict__(self):
         print('22222')
         return {
-            'comfy_pipeline':  self.comfy_pipeline.__dict__ if  self.comfy_pipeline else None,
-            'standard_pipeline':  self.standard_pipeline.__dict__ if  self.standard_pipeline else None
+            'comfy_pipeline':  self.comfy_pipeline.__dict__ if self.comfy_pipeline else None,
+            'standard_pipeline':  self.standard_pipeline.__dict__ if self.standard_pipeline else None
         }
 
     @property
     def json(self):
         return json.dumps(self.__dict__)
-
 
 
 @dataclass

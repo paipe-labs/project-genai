@@ -153,7 +153,8 @@ def add_comfy_task():
 
     return (
         jsonify(
-            {"ok": True, "message": "Task submitted successfully", "task_id": str(task_id)}
+            {"ok": True, "message": "Task submitted successfully",
+                "task_id": str(task_id)}
         ),
         202,
     )
@@ -229,7 +230,8 @@ def add_task():
 
     return (
         jsonify(
-            {"ok": True, "message": "Task submitted successfully", "task_id": str(task_id)}
+            {"ok": True, "message": "Task submitted successfully",
+                "task_id": str(task_id)}
         ),
         201,
     )

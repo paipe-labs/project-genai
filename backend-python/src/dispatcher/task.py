@@ -34,7 +34,7 @@ class Task:
 
         self._on_completed = None
         self._on_failed = None
-    
+
     @property
     def task_info(self):
         return self._task_info
