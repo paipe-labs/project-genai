@@ -1,0 +1,85 @@
+version: "3"
+
+services:
+  server:
+    image: genai-server
+    build:
+      context: ../backend-python
+      dockerfile: backend.dockerfile
+    ports:
+      - 8080:8080
+    environment:
+      DEBUG: true
+      ENFORCE_JWT_AUTH: false
+      WS_TASK_TIMEOUT: 4
+
+  mock-node-1:
+    build:
+      context: mock_node
+      dockerfile: mock_node.dockerfile
+    environment:
+      PORT: 8081
+      BACKEND_ADDR: "ws://server:8080/"
+      ID: "1"
+    ports:
+      - 8081:8081
+
+  mock-node-2:
+    build:
+      context: mock_node
+      dockerfile: mock_node.dockerfile
+    environment:
+      PORT: 8082
+      BACKEND_ADDR: "ws://server:8080/"
+      ID: "2"
+    ports:
+      - 8082:8082
+
+  mock-node-3:
+    build:
+      context: mock_node
+      dockerfile: mock_node.dockerfile
+    environment:
+      PORT: 8083
+      BACKEND_ADDR: "ws://server:8080/"
+      ID: "3"
+    ports:
+      - 8083:8083
+
+  mock-node-4:
+    build:
+      context: mock_node
+      dockerfile: mock_node.dockerfile
+    environment:
+      PORT: 8084
+      BACKEND_ADDR: "ws://server:8080/"
+      ID: "4"
+    ports:
+      - 8084:8084
+
+  mock-node-5:
+    build:
+      context: mock_node
+      dockerfile: mock_node.dockerfile
+    environment:
+      PORT: 8085
+      BACKEND_ADDR: "ws://server:8080/"
+      ID: "5"
+    ports:
+      - 8085:8085
+
+  tester:
+    build:
+      context: tester
+      dockerfile: tester.dockerfile
+    environment:
+      BACKEND_ADDR: http://server:8080
+      NODES_URLS: http://mock-node-1:8081 http://mock-node-2:8082 http://mock-node-3:8083 http://mock-node-4:8084 http://mock-node-5:8085
+    depends_on:
+      - server
+      - mock-node-1
+      - mock-node-2
+      - mock-node-3
+      - mock-node-4
+      - mock-node-5
+    entrypoint: ["pytest", "--log-cli-level=INFO"]
