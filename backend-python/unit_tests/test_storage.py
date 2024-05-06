@@ -1,10 +1,11 @@
+import sys
+sys.path.append("/backend-python/src")
+
+
 from utils.uuid import get_64bit_uuid
 from storage import StorageManager, UsersStorage
 from dispatcher.task_info import TaskInfo
 from dispatcher.task import Task
-import sys
-sys.path.append("/backend-python/src")
-
 
 def test_storage_manager():
     manager = StorageManager()

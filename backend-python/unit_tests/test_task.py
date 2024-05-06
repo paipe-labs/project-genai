@@ -1,3 +1,7 @@
+import sys
+sys.path.append("/backend-python/src")
+
+
 from dispatcher.task_info import (
     ComfyPipelineOptions,
     StandardPipelineOptions,
@@ -5,8 +9,6 @@ from dispatcher.task_info import (
 )
 from dispatcher.task import build_task_from_query, Task
 import copy
-import sys
-sys.path.append("/backend-python/src")
 
 
 COMMON_TASK_ID = "1"
