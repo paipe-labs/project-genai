@@ -331,6 +331,7 @@ def websocket_connection(ws):
                 print(
                     f"Registered providers: {dispatcher.providers_map.keys()}")
             elif msg_type == "result":
+                print('GDGDGDGGDGD')
                 try:
                     jsonschema.validate(instance=data_json,
                                         schema=TASK_RESULT_SCHEMA)

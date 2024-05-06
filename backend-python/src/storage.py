@@ -1,6 +1,6 @@
 from constants.env import SUPABASE_URL, SUPABASE_KEY
 from dispatcher.task import Task
-from dispatcher.task_info import TaskInfo, TaskOptions, TaskStatus, TaskStatusPayload, StandardPipelineOptions, ComfyPipelineOptions, get_public_status
+from dispatcher.task_info import TaskInfo, TaskOptions, TaskStatus, TaskStatusPayload, StandardPipelineOptions, ComfyPipelineOptions, get_public_status, PublicTaskStatus
 from utils.uuid import get_64bit_uuid
 
 
@@ -66,6 +66,7 @@ class StorageManager:
                 'provider_id': task.provider_id,
                 'status': task.status.value,
                 'info': task.task_info.json,
+                'public_status': PublicTaskStatus.PENDING.value,
                 'log': json.dumps(task.log)}).execute()
         else:
             if user_id not in self._users_to_tasks:
@@ -77,7 +78,7 @@ class StorageManager:
     def get_task_data(self, task_id: int) -> dict:
         if self._use_supabase:
             data, _ = supabase.table(self._table_name).select(
-                'priority', 'status', 'provider_id', 'num_failed_attempts', 'info', 'log', 'result').eq('id', task_id).execute()
+                'priority', 'status', 'provider_id', 'num_failed_attempts', 'info', 'log', 'public_status', 'result').eq('id', task_id).execute()
 
             if len(data[1]) == 0:
                 return None
@@ -85,7 +86,7 @@ class StorageManager:
             task = build_task(data[1][0])
             return {
                 'task': task,
-                'status': get_public_status(task.status).name,
+                'status': PublicTaskStatus(data[1][0].get('public_status', PublicTaskStatus.PENDING.value)).name,
                 'result': json.loads(result) if result else None
             }
         else:
@@ -94,15 +95,16 @@ class StorageManager:
     def get_task_data_with_verification(self, user_id: int, task_id: str) -> dict:
         if self._use_supabase:
             data, _ = supabase.table(self._table_name).select('priority', 'status', 'provider_id',
-                                                              'num_failed_attempts', 'info', 'log', 'result').eq('id', task_id).eq('user_id', user_id).execute()
-
+                                                              'num_failed_attempts', 'info', 'log', 'public_status', 'result').eq('id', task_id).eq('user_id', user_id).execute()
+            print(data)
             if len(data[1]) == 0:
                 return None
             result = data[1][0].get('result', '{}')
             task = build_task(data[1][0])
+            print(data[1][0]['public_status'])
             return {
                 'task': task,
-                'status': get_public_status(task.status).name,
+                'status': PublicTaskStatus(data[1][0].get('public_status', PublicTaskStatus.PENDING.value)).name,
                 'result': json.loads(result) if result else None
             }
         else:
@@ -114,7 +116,7 @@ class StorageManager:
     def get_tasks(self, user_id: int) -> dict:
         if self._use_supabase:
             data, _ = supabase.table(self._table_name).select('priority', 'status', 'provider_id',
-                                                              'num_failed_attempts', 'info', 'log', 'result').eq('user_id', user_id).execute()
+                                                              'num_failed_attempts', 'info', 'log', 'public_status', 'result').eq('user_id', user_id).execute()
 
             if len(data[1]) == 0:
                 return None
@@ -123,7 +125,7 @@ class StorageManager:
                 task = build_task(raw_task)
                 result.append({
                     'task': task,
-                    'status': get_public_status(task.status).name,
+                    'status': PublicTaskStatus(raw_task.get('public_status', PublicTaskStatus.PENDING.value)).name,
                     'result': json.loads(task.get('result', {}))
                 })
             return result
@@ -134,10 +136,11 @@ class StorageManager:
 
     def add_result(self, task_id: str, result_image_url: str):
         if self._use_supabase:
+            print('AAAAHAHAHA')
             print('adding res')
             data, count = supabase.table(self._table_name).upsert({
                 'id': task_id,
-                'status': task.status.value,
+                'public_status': PublicTaskStatus.COMPLETED.value,
                 'result': json.dumps({'images': result_image_url})}).execute()
         else:
             if task_id not in self._task_to_users:
