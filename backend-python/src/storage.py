@@ -134,8 +134,10 @@ class StorageManager:
 
     def add_result(self, task_id: str, result_image_url: str):
         if self._use_supabase:
+            print('adding res')
             data, count = supabase.table(self._table_name).upsert({
                 'id': task_id,
+                'status': task.status.value,
                 'result': json.dumps({'images': result_image_url})}).execute()
         else:
             if task_id not in self._task_to_users:

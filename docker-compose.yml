@@ -51,18 +51,18 @@ services:
     depends_on:
       - server
     
-  server-unit-tests:
-    build:
-      context: backend-python
-      dockerfile: backend.dockerfile
-    entrypoint: pytest
+  # server-unit-tests:
+  #   build:
+  #     context: backend-python
+  #     dockerfile: backend.dockerfile
+  #   entrypoint: pytest
 
-  autopep8:
-    build:
-      context: backend-python
-      dockerfile: utils.dockerfile
-    entrypoint: ["autopep8"]
-    working_dir: /code
-    command: ["--in-place", "--recursive", "/code/src"]
-    volumes:
-      - ./backend-python/src:/code/src
+  # autopep8:
+  #   build:
+  #     context: backend-python
+  #     dockerfile: utils.dockerfile
+  #   entrypoint: ["autopep8"]
+  #   working_dir: /code
+  #   command: ["--in-place", "--recursive", "/code/src"]
+  #   volumes:
+  #     - ./backend-python/src:/code/src

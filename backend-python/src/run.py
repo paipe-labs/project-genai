@@ -250,7 +250,7 @@ def get_task_info(task_id):
 
     if not task_data:
         return (jsonify({"ok": False, "error": "No such task for this user"}), 403)
-
+    print('task_dataaaaaaaaaa', task_data)
     return (
         jsonify(
             {
