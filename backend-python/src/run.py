@@ -6,7 +6,7 @@ from dispatcher.entry_queue import EntryQueue
 from dispatcher.meta_info import PrivateMetaInfo, PublicMetaInfo
 from dispatcher.provider import Provider
 from dispatcher.task import build_task_from_query
-from dispatcher.task_info import TaskResult, get_public_status
+from dispatcher.task_info import TaskResult
 from dispatcher.util.logger import logger
 from utils.query_check_result import QueryValidationResult
 from utils.uuid import get_64bit_uuid
@@ -255,7 +255,7 @@ def get_task_info(task_id):
         jsonify(
             {
                 "ok": True,
-                "status": get_public_status(task_data.status),
+                "status": task_data['status'],
                 "result": task_data.get("result"),
             }
         ),
@@ -276,7 +276,7 @@ def get_tasks():
         return (jsonify({"ok": False, "error": "No tasks for this user"}), 403)
 
     tasks_to_return = {
-        task_id: {"status": get_public_status(task_data["status"]),
+        task_id: {"status": task_data['status'],
                   "result": task_data.get("result")}
         for task_id, task_data in tasks.items()
     }

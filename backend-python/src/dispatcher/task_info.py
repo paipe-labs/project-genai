@@ -23,8 +23,8 @@ class PublicTaskStatus(Enum):
     PENDING = auto()
 
 
-def get_public_status(status: int) -> PublicTaskStatus:
-    if TaskStatus(status) == COMPLETED:
+def get_public_status(status: TaskStatus) -> PublicTaskStatus:
+    if status == TaskStatus.COMPLETED:
         return PublicTaskStatus.SUCCESS
     return PublicTaskStatus.PENDING
 

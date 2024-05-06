@@ -1,9 +1,6 @@
-
-
-
 from constants.env import SUPABASE_URL, SUPABASE_KEY
 from dispatcher.task import Task
-from dispatcher.task_info import TaskInfo, TaskOptions, TaskStatus, TaskStatusPayload
+from dispatcher.task_info import TaskInfo, TaskOptions, TaskStatus, TaskStatusPayload, StandardPipelineOptions, ComfyPipelineOptions, get_public_status
 from utils.uuid import get_64bit_uuid
 
 
@@ -85,8 +82,11 @@ class StorageManager:
             if len(data[1]) == 0:
                 return None
             result = data[1][0].get('result', '{}')
+            task = build_task(data[1][0])
             return {
-                'task': build_task(data[1][0]), 'result': json.loads(result) if result else None
+                'task': task,
+                'status': get_public_status(task.status),
+                'result': json.loads(result) if result else None
             }
         else:
             return self._users_to_tasks[self._task_to_users[task_id]][task_id]
@@ -99,8 +99,11 @@ class StorageManager:
             if len(data[1]) == 0:
                 return None
             result = data[1][0].get('result', '{}')
+            task = build_task(data[1][0])
             return {
-                'task': build_task(data[1][0]), 'result': json.loads(result) if result else None
+                'task': task,
+                'status': get_public_status(task.status),
+                'result': json.loads(result) if result else None
             }
         else:
             if user_id not in self._users_to_tasks or task_id not in self._users_to_tasks[user_id]:
@@ -115,10 +118,15 @@ class StorageManager:
 
             if len(data[1]) == 0:
                 return None
-            return [{
-                    'task': build_task(task),
+            result = []
+            for raw_task in data[1]:
+                task = build_task(raw_task)
+                result.append({
+                    'task': task,
+                    'status': get_public_status(task.status),
                     'result': json.loads(task.get('result', {}))
-                    } for task in data[1]]
+                })
+            return result
         else:
             if user_id not in self._users_to_tasks or task_id not in self._users_to_tasks[user_id]:
                 return None
