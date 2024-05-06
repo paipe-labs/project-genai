@@ -255,7 +255,7 @@ def get_task_info(task_id):
         jsonify(
             {
                 "ok": True,
-                "status": task_data['status'],
+                "status": task_data.get('status', None),
                 "result": task_data.get("result"),
             }
         ),
@@ -276,7 +276,7 @@ def get_tasks():
         return (jsonify({"ok": False, "error": "No tasks for this user"}), 403)
 
     tasks_to_return = {
-        task_id: {"status": task_data['status'],
+        task_id: {"status": task_data.get('status', None),
                   "result": task_data.get("result")}
         for task_id, task_data in tasks.items()
     }

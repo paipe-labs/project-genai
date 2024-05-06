@@ -85,7 +85,7 @@ class StorageManager:
             task = build_task(data[1][0])
             return {
                 'task': task,
-                'status': get_public_status(task.status),
+                'status': get_public_status(task.status).name,
                 'result': json.loads(result) if result else None
             }
         else:
@@ -102,7 +102,7 @@ class StorageManager:
             task = build_task(data[1][0])
             return {
                 'task': task,
-                'status': get_public_status(task.status),
+                'status': get_public_status(task.status).name,
                 'result': json.loads(result) if result else None
             }
         else:
@@ -123,7 +123,7 @@ class StorageManager:
                 task = build_task(raw_task)
                 result.append({
                     'task': task,
-                    'status': get_public_status(task.status),
+                    'status': get_public_status(task.status).name,
                     'result': json.loads(task.get('result', {}))
                 })
             return result
