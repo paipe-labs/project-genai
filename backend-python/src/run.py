@@ -186,7 +186,10 @@ async def generate_image(request: Request, response: Response):
         response.status_code = status.HTTP_504_GATEWAY_TIMEOUT
         return {"error": "Timeout waiting for WebSocket response"}
 
-    return {"ok": True, "result": {"images": connections[task_id]}}
+    if connections[task_id]["status"] == "ready":
+        return {"ok": True, "result": {"images": connections[task_id]}}
+    else:
+        return {"ok": False, "error": connections[task_id]["error"]}
 
 
 @app.post("/v1/tasks/", status_code=201)
@@ -323,17 +326,15 @@ async def websocket_connection(ws: WebSocket):
 
             print(f"Registered providers: {registered_providers.values()}")
 
-        elif msg_type == "result":
+        elif msg_type == "result" or msg_type == "error":
             try:
                 jsonschema.validate(instance=data_json,
                                     schema=TASK_RESULT_SCHEMA)
             except Exception as e:
                 logger.error(
-                    f"Task {data_json} was not recieved due to schema validation error: {e}")
+                    f"Task result {data_json} was not recieved due to schema validation error: {e}")
 
             task_id = data_json.get("taskId")
-            results_url = data_json.get("resultsUrl")
-
             id_ = registered_providers.get(ws)
             if id_ is None:
                 logger.warn(f"Not registered provider sent result: {ws}")
@@ -345,12 +346,18 @@ async def websocket_connection(ws: WebSocket):
                 if task_data:
                     task = task_data.get("task")
                     if task:
-                        provider.task_completed(task)
-                        storage_manager.add_result(task_id, results_url)
+                        if msg_type == "result":
+                            provider.task_completed(task)
+                            storage_manager.add_result(
+                                task_id, data_json.get("resultsUrl"))
+                        else:
+                            provider.task_failed(task, data_json.get("error"))
+                            # TODO: add to storage manager
 
             if task_id in task_ready:
-                connections[task_id] = results_url
+                connections[task_id] = data_json
                 task_ready[task_id].set()
+
         else:
             logger.warn(f"Unknown message type: {msg_type}")
 

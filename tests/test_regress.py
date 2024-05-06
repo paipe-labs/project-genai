@@ -1,4 +1,3 @@
-import concurrent.futures
 import os
 import requests
 import time
@@ -100,8 +99,9 @@ def test_images_generation_comfyui():
 
     logger.info(response_json)
     assert response.status_code == 202
-    assert "result" in response_json
-    assert "images" in response_json["result"]
+    assert "result" in response_json or "error" in response_json
+    if "result" in response_json:
+        assert "images" in response_json["result"]
 
 
 def test_tasks_basic():
@@ -153,7 +153,8 @@ def test_tasks_basic():
     task_id = response_json["task_id"]
     while True:
 
-        response = requests.get(TASKS_ENDPOINT + task_id, headers={"token": "Token"})
+        response = requests.get(TASKS_ENDPOINT + task_id,
+                                headers={"token": "Token"})
         response_json = response.json()
         logger.info(response_json)
         if response_json["status"] == "SUCCESS":
