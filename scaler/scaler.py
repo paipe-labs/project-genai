@@ -1,4 +1,4 @@
-import nodes_common
+from nodes_common import local, vastai
 
 from typing import Optional
 import os
@@ -20,14 +20,14 @@ nodes: dict[str, NodeInfo] = {}
 
 
 def create_node(
-    platform: Optional[str],
-    backend: Optional[str],
-    image: Optional[str],
-    prov_script: Optional[str],
-    vastai_iid: Optional[str],
+    platform: Optional[str] = None,
+    backend: Optional[str] = None,
+    image: Optional[str] = None,
+    prov_script: Optional[str] = None,
+    vastai_iid: Optional[str] = None,
 ) -> str:
-    image = DEFAULT_DOCKER_IMAGE if image is None else image
-    prov_script = DEFAULT_PROV_SCRIPT if prov_script is None else prov_script
+    image = DEFAULT_DOCKER_IMAGE if image is None or image == "" else image
+    prov_script = DEFAULT_PROV_SCRIPT if prov_script is None or prov_script == "" else prov_script
     if image == "":
         raise Exception(
             "No image instance passed and DEFAULT_DOCKER_IMAGE not set.")
@@ -35,9 +35,9 @@ def create_node(
         raise Exception("DEFAULT_PROV_SCRIPT environment variable not set.")
 
     if platform == "local":
-        node_id = nodes_common.local.create_node(backend, image, prov_script)
+        node_id = local.create_node(backend, image, prov_script)
     elif platform == "vastai":
-        node_id = nodes_common.vastai.create_node(
+        node_id = vastai.create_node(
             backend, image, prov_script, vastai_iid)
     else:
         raise Exception(f"Platform type not supported: {platform}")
@@ -46,16 +46,16 @@ def create_node(
     return node_id
 
 
-def delete_node(node_id: Optional[str]):
+def delete_node(node_id: Optional[str] = None):
     if node_id is None:
         raise ValueError("No value provided for delete_node")
     if node_id not in nodes.keys():
         raise ValueError(f"Deleting unknown node {node_id}")
 
     if nodes[node_id].platform == "local":
-        nodes_common.local.delete_node(node_id)
+        local.delete_node(node_id)
     elif nodes[node_id].platform == "vastai":
-        nodes_common.vastai.delete_node(node_id)
+        vastai.delete_node(node_id)
     else:
         raise Exception(
             f"Platform type not supported: {nodes[node_id].platform}")

@@ -1,5 +1,5 @@
 import scaler
-from logger import logger
+from loguru import logger
 
 import grpc
 import proto.scaler_pb2 as pb_msgs
@@ -25,7 +25,7 @@ class Scaler(pb.ScalerServicer):
         except Exception as e:
             logger.error(e)
             context.set_code(grpc.StatusCode.UNKNOWN)
-            context.set_details(e)
+            context.set_details(str(e))
             return pb_msgs.CreateNodeResponse()
 
     def DeleteNode(self, request: pb_msgs.DeleteNodeRequest, context) -> pb_msgs.DeleteNodeResponse:
@@ -34,18 +34,18 @@ class Scaler(pb.ScalerServicer):
         except Exception as e:
             logger.error(e)
             context.set_code(grpc.StatusCode.UNKNOWN)
-            context.set_details(e)
+            context.set_details(str(e))
         return pb_msgs.DeleteNodeResponse()
 
     def ListNodes(self, _: google.protobuf.empty_pb2.Empty, context) -> pb_msgs.ListNodesResponse:
         try:
             node_info = [pb_msgs.NodeInfo(node_id=id, platform=info.platform,
-                                          backend=info.backend, image=info.image) for id, info in scaler.list.nodes]
+                                          backend=info.backend, image=info.image) for id, info in scaler.list_nodes().items()]
             return pb_msgs.ListNodesResponse(nodes=node_info)
         except Exception as e:
             logger.error(e)
             context.set_code(grpc.StatusCode.UNKNOWN)
-            context.set_details(e)
+            context.set_details(str(e))
             return pb_msgs.ListNodesResponse()
 
 

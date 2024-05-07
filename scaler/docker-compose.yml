@@ -1,0 +1,30 @@
+version: '3'
+
+services:
+  scaler:
+    build:
+      context: ../
+      dockerfile: scaler/scaler.dockerfile
+      args:
+        VASTAI_API_KEY: ${VASTAI_API_KEY}
+    ports:
+      - 51075:51075
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      SERVER_ADDR: ${GRPC_SERVER_ADDR:-0.0.0.0:51075}
+      DEFAULT_DOCKER_IMAGE: vvauijij/genai-node-comfyui
+      DEFAULT_PROV_SCRIPT: ${DEFAULT_PROV_SCRIPT:-https://raw.githubusercontent.com/ai-dock/comfyui/main/config/provisioning/default.sh}
+
+  tests:
+    build:
+      context: ./
+      dockerfile: tests/test.dockerfile
+      args:
+        VASTAI_API_KEY: ${VASTAI_API_KEY}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      GRPC_SERVER_ADDR: scaler:51075
+    depends_on:
+      - scaler
