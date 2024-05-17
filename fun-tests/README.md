@@ -10,7 +10,9 @@ A mock node is a web server, that provides the same interface as the [client nod
 
 The tester service uses `pytest` to validate servers behaviour. It sends HTTP requests to the server, acting as a user, while orchestrating the mock nodes behaviour to simulate certain scenarios. See code in `tester/test_backend.py`.
 
-setup image : images/fun-tests-setup.png
+<br/><br/>
+<img src="https://github.com/paipe-labs/project-genai/blob/multi-node-test/fun-tests/images/fun-tests-setup.png" alt="drawing" width="600"/>
+<br/><br/>
 
 #### Tested scenarios:
 
