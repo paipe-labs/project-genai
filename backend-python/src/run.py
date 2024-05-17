@@ -295,13 +295,19 @@ async def websocket_connection(ws: WebSocket):
         msg_type = data_json.get("type")
         if msg_type == "register":
             node_id = data_json.get("node_id")
-            metadata = data_json.get("metadata", dict())
-            public_meta = PublicMetaInfo(
-                models=metadata.get("models", []),
-                gpu_type=metadata.get("gpu_type", ""),
-                ncpu=metadata.get("ncpu", 0),
-                ram=metadata.get("ram", 0)
-            )
+            try:
+                metadata = data_json["metadata"]
+                public_meta = PublicMetaInfo(
+                    models=metadata.get("models", []),
+                    gpu_type=metadata.get("gpu_type", ""),
+                    ncpu=metadata.get("ncpu", 0),
+                    ram=metadata.get("ram", 0)
+                )
+            except Exception as e:
+                ws.close(
+                    reason=1008, message="No metadata received on register")
+                print(f"Skipping node without metadata info: {e}")
+                break
 
             print(f"Node {node_id} connected")
             if node_id in dispatcher.providers:
