@@ -1,23 +1,20 @@
-from math import inf
-from typing import Callable, Union
-
-import flask_sock
-
+from dispatcher.util.logger import logger
 from dispatcher.meta_info import PublicMetaInfo, PrivateMetaInfo
 from dispatcher.network_connection import NetworkConnection
-from dispatcher.provider_estimator import ProviderEstimator
 from dispatcher.task import Task
 from dispatcher.task_info import (
     FailedByProvider,
     TaskStatusPayload,
-    TaskStatus,
-    TaskResult,
+    TaskStatus
 )
-from dispatcher.util.logger import logger
 
-# TODO: reevaluate & move
-NUM_RETRY_ATTEMPTS = 3
-OFFLINE_TIMEOUT = 3000
+from typing import Callable, Optional, Awaitable
+from websockets.exceptions import ConnectionClosed
+from fastapi import WebSocket, WebSocketDisconnect
+import asyncio
+
+
+OFFLINE_TIMEOUT = 3
 
 
 class Provider:
@@ -31,165 +28,130 @@ class Provider:
         self._id = provider_id
         self._pub_meta_info = public_meta_info
         self._pr_meta_info = private_meta_info
-        self._is_online = True
-        self._offline_timeout = None  # NodeJS.Timeout
-
-        self._on_closed_callback: Union[Callable[[], None], None] = None
-        self._on_updated_callback: Union[Callable[[], None], None] = None
-
         self._in_progress: set[Task] = set()
-        self._estimator = ProviderEstimator(
-            self._pub_meta_info, self._pr_meta_info)
 
         self._network_connection = network_connection
-        self._network_connection.set_on_meta_info_updated(
-            self.update_public_meta_info)
-        self._network_connection.set_on_connection_lost(self.start_offline)
-        self._network_connection.set_on_connection_restored(self.stop_offline)
-        self._network_connection.set_on_task_completed(self.task_completed)
-        self._network_connection.set_on_task_failed(self.task_failed)
+        self._is_online = True
+        self._offline_event: asyncio.Event
+
+        self._on_closed_callback: Optional[Callable[[
+        ], Awaitable[None]]] = None
+        self._on_connection_lost_callback: Optional[Callable[[
+        ], Awaitable[None]]] = None
 
     @property
     def id(self):
         return self._id
 
     @property
-    def network_connection(self):
-        return self._network_connection
-
-    @property
-    def estimator(self):
-        return self._estimator
-
-    @property
-    def queue_length(self):  # used to be a method
+    def queue_length(self):
         return len(self._in_progress)
 
     @property
     def waiting_time(self):
-        return self._estimator.waiting_time
+        return self.queue_length
 
     @property
-    def min_cost(self):  # used to be a method
-        if not self._is_online:
-            return inf
-        return self._pub_meta_info.min_cost
+    def is_online(self):
+        return self._is_online
 
-    def start_offline(self):
-        if self._offline_timeout is not None:
+    @property
+    def tasks_in_progress(self):
+        return self._in_progress
+
+    async def start_offline(self):
+        if not self._is_online:
+            logger.warning("start_offline called twice")
             return
-        # TODO
-        # self._offline_timeot = setTimeout(
-        # call dispose, on_closed
-        # 1000
-        # )
 
         self._is_online = False
-        self.on_updated()
-
-    def dispose(self):
-        # TODO
-        # self._network_connection.close()
-        for task in self._in_progress:
-            task.set_status(FailedByProvider(reason="Provider is offline"))
-            self.on_closed()
+        self._offline_event = asyncio.Event()
+        try:
+            await asyncio.wait_for(self._offline_event.wait(), OFFLINE_TIMEOUT)
+        except TimeoutError:
+            for task in self._in_progress:
+                task.set_status(FailedByProvider(reason="Provider is offline"))
+            await self.on_closed()
 
     def stop_offline(self):
-        if self._offline_timeout is None:
+        if self._is_online:
+            logger.warning("stop_offline called twice")
             return
-        # TODO
-        # clearTimeout(self._offline_timeout)
-        self._offline_timeout = None
         self._is_online = True
-        self.on_updated()
+        self._offline_event.set
 
-    # why is it mutable?
+    def restore_connection(self, ws: WebSocket):
+        self._network_connection.restore_connection(ws)
+        self.stop_offline()
+
     def update_public_meta_info(self, meta_info: PublicMetaInfo):
         self._pub_meta_info = meta_info
-        self._estimator.update_public_meta_info(meta_info)
-        self.on_updated()
 
     def update_private_meta_info(self, meta_info: PrivateMetaInfo):
         self._pr_meta_info = meta_info
-        self._estimator.update_private_meta_info(meta_info)
-        self.on_updated()
 
-    def schedule_task(self, task: Task):
-        # logger.info("Task {task} scheduled in provider {provider}".format(task.id, self._id))
-        self._estimator.add_task(task)
-        self.async_schedule_task(task)
-
-    def async_schedule_task(self, task: Task):  # TODO make async)))
+    async def schedule_task(self, task: Task):
         try:
-            # Assuming send_task is an async method of network_connection
-            self.network_connection.send_task(task)
-            task.in_progress = True
-            return
-        except flask_sock.ConnectionClosed:
-            # TODO: make sure task is rescheduled somewhere
+            self._in_progress.add(task)
+            await self._network_connection.send_task(task)
+        except (ConnectionClosed, WebSocketDisconnect):
             logger.warn(
                 "got ConnectionClosed exception on send_task in provider {id}".format(id=self._id))
-            self.on_closed()
-            return
+            await self.on_closed()
         except Exception as e:
-            logger.error("unhandled exception in async_schedule_task:", e)
+            logger.error(f"unhandled exception in schedule_task: {e}")
+            await self.on_closed()
+
+    async def abort_task(self, task: Task):
+        if task not in self._in_progress:
+            logger.warn(f"abort_task called on task {task.id} not in progress")
             return
 
-    def estimate_task_waiting_time(self, task: Task) -> int:
-        return self._estimator.estimate_task_time(task)
-
-    def abort_task(self, task: Task):
-        self.task_finished(task)
-        # TODO
-        # (async () => {
-        #  try {
-        #    await this.network_connection.abortTask(task);
-        #  } catch (e) {
-        #    logger.error(e);
-        #  }
-        # })();
-
-    def task_finished(self, task: Task):
-        self._estimator.remove_task(task)
-        self._in_progress.remove(task)
+        try:
+            self._in_progress.remove(task)
+            task.set_status(TaskStatusPayload(task_status=TaskStatus.ABORTED))
+            await self._network_connection.abort_task(task)
+        except (ConnectionClosed, WebSocketDisconnect):
+            logger.warn(
+                "got ConnectionClosed exception on abort_task in provider {id}".format(id=self._id))
+            await self.on_closed()
+        except Exception as e:
+            logger.error(f"unhandled exception in abort_task: {e}")
+            await self.on_closed()
 
     def task_failed(self, task: Task, fail_reason: str):
         if task not in self._in_progress:
             return
-        self.task_finished(task)
-        task.add_failed_attempt()
+        self._in_progress.remove(task)
         task.set_status(FailedByProvider(reason=fail_reason))
-        task.fail()
-        self.on_updated()
 
-    def task_completed(self, task: Task, result: TaskResult):
+    def task_completed(self, task: Task):
         if task not in self._in_progress:
             return
-        self.task_finished(task)
+        self._in_progress.remove(task)
         task.set_status(TaskStatusPayload(task_status=TaskStatus.COMPLETED))
-        task.complete(result)
-        self.on_updated()
 
     def set_on_closed(self, callback: Callable[[], None]):
         self._on_closed_callback = callback
 
-    def set_on_updated(self, callback: Callable[[], None]):
-        self._on_updated_callback = callback
+    def set_on_connection_lost(self, callback: Callable[[], None]):
+        self._on_connection_lost_callback = callback
 
-    def on_closed(self):
+    async def on_closed(self):
         if self._on_closed_callback is None:
             logger.warn(
                 "On updated callback not set in provider {id}".format(
                     id=self._id)
             )
             return
-        self._on_closed_callback()
+        await self._on_closed_callback()
 
-    def on_updated(self):
-        if self._on_updated_callback is None:
+    async def on_connection_lost(self):
+        if self._on_connection_lost_callback is None:
             logger.warn(
-                "On updated callback not set in provider {id}".format(
+                "On connection lost callback not set in provider {id}".format(
                     id=self._id)
             )
             return
-        self._on_updated_callback()
+        await self.start_offline()
+        await self._on_connection_lost_callback()

@@ -21,9 +21,9 @@ services:
       args:
         AIDOCK_COMFYUI_IMAGE: ghcr.io/ai-dock/comfyui
         AIDOCK_COMFYUI_TAG: latest-cpu
-    entrypoint: sh -c "
-                /aidock-comfyui/test_run_comfyui.sh &
-                node public/run.js -b ws://server:8080/ -i localhost:8188 -t comfyUI"
+    environment:
+      CPU: true
+    entrypoint: sh -c "/aidock-comfyui/run_comfyui.sh & node public/run.js -b ws://server:8080/ -i localhost:8188 -t comfyUI"
     depends_on:
       - server
   
@@ -36,9 +36,9 @@ services:
       args:
         COG_COMFYUI_IMAGE: ghcr.io/paipe-labs/cog-comfyui
         COG_COMFYUI_TAG: latest
-    entrypoint: sh -c "
-                /cog-comfyui/test_run_comfyui.sh &
-                node public/run.js -b ws://server:8080/ -i localhost:8188 -t comfyUI"
+    environment:
+      CPU: true
+    entrypoint: sh -c "/cog-comfyui/run_comfyui.sh & node public/run.js -b ws://server:8080/ -i localhost:8188 -t comfyUI"
     depends_on:
       - server
 
