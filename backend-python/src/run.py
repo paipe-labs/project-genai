@@ -154,6 +154,7 @@ async def health(response: Response):
     if len(registered_providers) != 0:
         return {"availableNodesCount": len(registered_providers), "status": "ok"}
     
+    
     response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     return {"availableNodesCount": 0, "status": "error"}
 
