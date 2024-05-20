@@ -151,10 +151,11 @@ async def add_comfy_task(request: Request, response: Response):
 
 @app.get("/v1/nodes/health/", status_code=200)
 async def health(response: Response):
-    if registered_providers != {}:
-        return {"ok": True}
+    if len(registered_providers) != 0:
+        return {"AvailableNodesCount": len(registered_providers), "status": "ok"}
+    
     response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    return {"ok": False}
+    return {"AvailableNodesCount": 0, "status": "error"}
 
 
 @app.post("/v1/images/generation/", status_code=202)
