@@ -1,4 +1,4 @@
-from constants.env import ENFORCE_JWT_AUTH, HTTP_WS_PORT, WS_TASK_TIMEOUT
+from constants.env import ENFORCE_JWT_AUTH, HTTP_WS_PORT, WS_TASK_TIMEOUT, USE_SUPABASE
 from constants.static import TASK_RESULT_SCHEMA
 
 from dispatcher.dispatcher import Dispatcher
@@ -38,7 +38,7 @@ sock = Sock(app)
 
 entry_queue = EntryQueue()
 dispatcher = Dispatcher(entry_queue)
-storage_manager = StorageManager()
+storage_manager = StorageManager(USE_SUPABASE)
 users_storage = UsersStorage()
 
 registered_providers = {}
