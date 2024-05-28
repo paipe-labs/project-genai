@@ -1,4 +1,3 @@
-import concurrent.futures
 import os
 import requests
 import time
@@ -53,55 +52,56 @@ def test_client_hello():
     assert "url" in response_json
 
 
-# def test_images_generation_comfyui():
-#     wait_for_http(IMAGES_GENERATION_ENDPOINT)
-#     wait_for_nodes()
+def test_images_generation_comfyui():
+    wait_for_http(IMAGES_GENERATION_ENDPOINT)
+    wait_for_nodes()
 
-#     # TODO: proper jwt token check
+    # TODO: proper jwt token check
 
-#     pipelineData = """
-#     {
-#         "9": {
-#             "inputs": {
-#                 "filename_prefix": "ComfyUI",
-#                 "images": [
-#                     "10",
-#                     0
-#                 ]
-#             },
-#             "class_type": "SaveImage"
-#         },
-#         "10": {
-#             "inputs": {
-#                 "image": "image.png",
-#                 "upload": "image"
-#             },
-#             "class_type": "LoadImage"
-#         }
-#     }
-#     """
+    pipelineData = """
+    {
+        "9": {
+            "inputs": {
+                "filename_prefix": "ComfyUI",
+                "images": [
+                    "10",
+                    0
+                ]
+            },
+            "class_type": "SaveImage"
+        },
+        "10": {
+            "inputs": {
+                "image": "image.png",
+                "upload": "image"
+            },
+            "class_type": "LoadImage"
+        }
+    }
+    """
 
-#     images = """
-#     {
-#         "image.png": "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAIAQMAAAD+wSzIAAAABlBMVEX///+/v7+jQ3Y5AAAADklEQVQI12P4AIX8EAgALgAD/aNpbtEAAAAASUVORK5CYII"
-#     }
-#     """
+    images = """
+    {
+        "image.png": "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAIAQMAAAD+wSzIAAAABlBMVEX///+/v7+jQ3Y5AAAADklEQVQI12P4AIX8EAgALgAD/aNpbtEAAAAASUVORK5CYII"
+    }
+    """
 
-#     input_data = {
-#         "token": "",
-#         "comfyPipeline": {
-#             "pipelineData": pipelineData,
-#             "pipelineDependencies": {"images": images},
-#         },
-#     }
+    input_data = {
+        "token": "",
+        "comfyPipeline": {
+            "pipelineData": pipelineData,
+            "pipelineDependencies": {"images": images},
+        },
+    }
 
-#     response = requests.post(IMAGES_GENERATION_ENDPOINT, json=input_data)
-#     response_json = response.json()
+    response = requests.post(IMAGES_GENERATION_ENDPOINT, json=input_data)
+    response_json = response.json()
 
-#     logger.info(response_json)
-#     assert response.status_code == 202
-#     assert "result" in response_json
-#     assert "images" in response_json["result"]
+    logger.info(response_json)
+    assert response.status_code == 202
+    assert "result" in response_json or "error" in response_json
+    if "result" in response_json:
+        assert "images" in response_json["result"]
 
 
 def test_tasks_basic():
@@ -153,7 +153,8 @@ def test_tasks_basic():
     task_id = response_json["task_id"]
     while True:
 
-        response = requests.get(TASKS_ENDPOINT + task_id, headers={"token": "Token"})
+        response = requests.get(TASKS_ENDPOINT + task_id,
+                                headers={"token": "Token"})
         response_json = response.json()
         logger.info(response_json)
         if response_json["status"] == "SUCCESS":
@@ -163,72 +164,72 @@ def test_tasks_basic():
         assert response_json["status"] == "PENDING"
 
 
-# def test_tasks_access():
-#     wait_for_http(TASKS_ENDPOINT)
-#     wait_for_nodes()
+def test_tasks_access():
+    wait_for_http(TASKS_ENDPOINT)
+    wait_for_nodes()
 
-#     # TODO: proper jwt token check
+    # TODO: proper jwt token check
 
-#     pipelineData = """
-#     {
-#         "9": {
-#             "inputs": {
-#                 "filename_prefix": "ComfyUI",
-#                 "images": [
-#                     "10",
-#                     0
-#                 ]
-#             },
-#             "class_type": "SaveImage"
-#         },
-#         "10": {
-#             "inputs": {
-#                 "image": "image.png",
-#                 "upload": "image"
-#             },
-#             "class_type": "LoadImage"
-#         }
-#     }
-#     """
+    pipelineData = """
+    {
+        "9": {
+            "inputs": {
+                "filename_prefix": "ComfyUI",
+                "images": [
+                    "10",
+                    0
+                ]
+            },
+            "class_type": "SaveImage"
+        },
+        "10": {
+            "inputs": {
+                "image": "image.png",
+                "upload": "image"
+            },
+            "class_type": "LoadImage"
+        }
+    }
+    """
 
-#     images = """
-#     {
-#         "image.png": "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAIAQMAAAD+wSzIAAAABlBMVEX///+/v7+jQ3Y5AAAADklEQVQI12P4AIX8EAgALgAD/aNpbtEAAAAASUVORK5CYII"
-#     }
-#     """
+    images = """
+    {
+        "image.png": "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAIAQMAAAD+wSzIAAAABlBMVEX///+/v7+jQ3Y5AAAADklEQVQI12P4AIX8EAgALgAD/aNpbtEAAAAASUVORK5CYII"
+    }
+    """
 
-#     input_data = {
-#         "token": "Token1",
-#         "comfyPipeline": {
-#             "pipelineData": pipelineData,
-#             "pipelineDependencies": {"images": images},
-#         },
-#     }
+    input_data = {
+        "token": "Token1",
+        "comfyPipeline": {
+            "pipelineData": pipelineData,
+            "pipelineDependencies": {"images": images},
+        },
+    }
 
-#     response = requests.post(TASKS_ENDPOINT, json=input_data)
-#     response_json = response.json()
-#     logger.info(response_json)
-#     task_id1 = response_json["task_id"]
+    response = requests.post(TASKS_ENDPOINT, json=input_data)
+    response_json = response.json()
+    logger.info(response_json)
+    task_id1 = response_json["task_id"]
 
-#     input_data["token"] = "Token2"
-#     response = requests.post(TASKS_ENDPOINT, json=input_data)
-#     response_json = response.json()
-#     logger.info(response_json)
-#     task_id2 = response_json["task_id"]
+    input_data["token"] = "Token2"
+    response = requests.post(TASKS_ENDPOINT, json=input_data)
+    response_json = response.json()
+    logger.info(response_json)
+    task_id2 = response_json["task_id"]
 
-#     response_valid = requests.get(
-#         TASKS_ENDPOINT + task_id1, headers={"token": "Token1"}
-#     )
-#     logger.info(response_valid)
-#     assert response_valid.status_code == 201
+    response_valid = requests.get(
+        TASKS_ENDPOINT + task_id1, headers={"token": "Token1"}
+    )
+    logger.info(response_valid)
+    assert response_valid.status_code == 201
 
-#     response_invalid = requests.get(
-#         TASKS_ENDPOINT + task_id2, headers={"token": "Token1"}
-#     )
-#     logger.info(response_invalid)
-#     assert response_invalid.status_code == 403
+    response_invalid = requests.get(
+        TASKS_ENDPOINT + task_id2, headers={"token": "Token1"}
+    )
+    logger.info(response_invalid)
+    assert response_invalid.status_code == 403
 
-#     response_count = requests.get(TASKS_ENDPOINT, headers={"token": "Token1"})
-#     response_json = response_count.json()
-#     logger.info(response_json)
-#     assert response_json["count"] == 1
+    response_count = requests.get(TASKS_ENDPOINT, headers={"token": "Token1"})
+    response_json = response_count.json()
+    logger.info(response_json)
+    assert response_json["count"] == 1

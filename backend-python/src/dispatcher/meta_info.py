@@ -7,8 +7,6 @@ class PublicMetaInfo(typing.NamedTuple):
     ncpu: int
     ram: int
 
-    min_cost: int  # TODO: get rid of this
-
 
 class PrivateMetaInfo(typing.NamedTuple):
     pass

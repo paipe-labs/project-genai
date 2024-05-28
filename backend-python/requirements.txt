@@ -1,13 +1,9 @@
+asyncio==3.4.3
 attrs==23.2.0; python_version >= '3.7'
 blinker==1.7.0; python_version >= '3.8'
 click==8.1.7; python_version >= '3.7'
 exceptiongroup==1.2.0; python_version < '3.11'
-flask==3.0.0; python_version >= '3.8'
-flask-cors==4.0.0
-flask-sock==0.7.0; python_version >= '3.6'
-gevent==23.9.1; python_version >= '3.8'
-gevent-websocket==0.10.1
-greenlet==3.0.3; python_version >= '3.7'
+fastapi==0.110.1
 h11==0.14.0; python_version >= '3.7'
 iniconfig==2.0.0; python_version >= '3.7'
 itsdangerous==2.1.2; python_version >= '3.7'
@@ -19,13 +15,15 @@ packaging==24.0; python_version >= '3.7'
 pluggy==1.4.0; python_version >= '3.8'
 pyjwt==2.3.0; python_version >= '3.6'
 pytest==8.1.1; python_version >= '3.8'
+pytest-asyncio==0.23.6
 referencing==0.33.0; python_version >= '3.8'
 rpds-py==0.18.0; python_version >= '3.8'
 setuptools==69.2.0; python_version >= '3.8'
 simple-websocket==1.0.0; python_version >= '3.6'
 supabase==2.4.3; python_version >= '3.7'
 tomli==2.0.1; python_version < '3.11'
-websocket-client==1.6.4; python_version >= '3.8'
+uvicorn==0.29.0
+websockets==12.0
 werkzeug==3.0.1; python_version >= '3.8'
 wsproto==1.2.0; python_full_version >= '3.7.0'
 zope.event==5.0; python_version >= '3.7'
