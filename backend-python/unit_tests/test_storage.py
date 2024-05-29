@@ -8,7 +8,7 @@ from dispatcher.task_info import TaskInfo
 from dispatcher.task import Task
 
 def test_storage_manager():
-    manager = StorageManager()
+    manager = StorageManager(use_supabase=False)
     users_storage = UsersStorage()
     uid1 = users_storage.get_user_id("token1")
     uid2 = users_storage.get_user_id("token2")

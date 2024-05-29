@@ -29,12 +29,12 @@ app.add_middleware(
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"]
+    allow_headers=["*"],
 )
 
 dispatcher = Dispatcher()
 
-storage_manager = StorageManager(USE_SUPABASE)
+storage_manager = StorageManager(use_supabase=USE_SUPABASE)
 users_storage = UsersStorage()
 
 registered_providers = {}
@@ -147,7 +147,11 @@ async def add_comfy_task(request: Request, response: Response):
 
     await dispatcher.add_task(task)
 
-    return {"ok": True, "message": "Task submitted successfully", "task_id": str(task_id)}
+    return {
+        "ok": True,
+        "message": "Task submitted successfully",
+        "task_id": str(task_id),
+    }
 
 
 @app.get("/v1/nodes/health/", status_code=200)
@@ -216,7 +220,11 @@ async def add_task(request: Request, response: Response):
 
     await dispatcher.add_task(task)
 
-    return {"ok": True, "message": "Task submitted successfully", "task_id": str(task_id)}
+    return {
+        "ok": True,
+        "message": "Task submitted successfully",
+        "task_id": str(task_id),
+    }
 
 
 @app.get("/v1/tasks/{task_id}", status_code=201)
@@ -257,8 +265,10 @@ async def get_tasks(request: Request, response: Response):
         return {"ok": False, "error": "No tasks for this user"}
 
     tasks_to_return = {
-        task_id: {"status": task_data.get('status', None),
-                  "result": task_data.get("result")}
+        task_id: {
+            "status": task_data.get("status", None),
+            "result": task_data.get("result"),
+        }
         for task_id, task_data in tasks.items()
     }
     return {"ok": True, "count": len(tasks), "data": tasks_to_return}
@@ -303,11 +313,10 @@ async def websocket_connection(ws: WebSocket):
                     models=metadata.get("models", []),
                     gpu_type=metadata.get("gpu_type", ""),
                     ncpu=metadata.get("ncpu", 0),
-                    ram=metadata.get("ram", 0)
+                    ram=metadata.get("ram", 0),
                 )
             except Exception as e:
-                ws.close(
-                    reason=1008, message="No metadata received on register")
+                ws.close(reason=1008, message="No metadata received on register")
                 print(f"Skipping node without metadata info: {e}")
                 break
 
@@ -320,15 +329,17 @@ async def websocket_connection(ws: WebSocket):
             else:
                 private_meta = PrivateMetaInfo()
                 network_connection = WSConnection(ws)
-                provider = Provider(node_id, public_meta,
-                                    private_meta, network_connection)
+                provider = Provider(
+                    node_id, public_meta, private_meta, network_connection
+                )
                 dispatcher.add_provider(provider)
 
             previous_ws = find_key_by_value(registered_providers, node_id)
             if previous_ws is not None and previous_ws != ws:
                 registered_providers.pop(previous_ws)
-                logger.warn(
-                    f"Disconnected provider connection found saved in registered")
+                logger.warning(
+                    f"Disconnected provider connection found saved in registered"
+                )
 
             registered_providers[ws] = node_id
 
@@ -340,12 +351,13 @@ async def websocket_connection(ws: WebSocket):
                                     schema=TASK_RESULT_SCHEMA)
             except Exception as e:
                 logger.error(
-                    f"Task result {data_json} was not recieved due to schema validation error: {e}")
+                    f"Task result {data_json} was not recieved due to schema validation error: {e}"
+                )
 
             task_id = data_json.get("taskId")
             id_ = registered_providers.get(ws)
             if id_ is None:
-                logger.warn(f"Not registered provider sent result: {ws}")
+                logger.warning(f"Not registered provider sent result: {ws}")
                 break
 
             provider = dispatcher.providers.get(id_)
@@ -357,7 +369,8 @@ async def websocket_connection(ws: WebSocket):
                         if msg_type == "result":
                             provider.task_completed(task)
                             storage_manager.add_result(
-                                task_id, data_json.get("resultsUrl"))
+                                task_id, data_json.get("resultsUrl")
+                            )
                         else:
                             provider.task_failed(task, data_json.get("error"))
                             # TODO: add to storage manager
@@ -367,7 +380,7 @@ async def websocket_connection(ws: WebSocket):
                 task_ready[task_id].set()
 
         else:
-            logger.warn(f"Unknown message type: {msg_type}")
+            logger.warning(f"Unknown message type: {msg_type}")
 
 
 if __name__ == "__main__":

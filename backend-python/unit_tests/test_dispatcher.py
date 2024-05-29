@@ -1,8 +1,8 @@
 import sys
+sys.path.append("/backend-python/src")
+
 import pytest
 import asyncio
-
-sys.path.append("/backend-python/src")
 
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.meta_info import PrivateMetaInfo, PublicMetaInfo
