@@ -95,7 +95,7 @@ class Provider:
             self._in_progress.add(task)
             await self._network_connection.send_task(task)
         except (ConnectionClosed, WebSocketDisconnect):
-            logger.warn(
+            logger.warning(
                 "got ConnectionClosed exception on send_task in provider {id}".format(id=self._id))
             await self.on_closed()
         except Exception as e:
@@ -104,7 +104,8 @@ class Provider:
 
     async def abort_task(self, task: Task):
         if task not in self._in_progress:
-            logger.warn(f"abort_task called on task {task.id} not in progress")
+            logger.warning(
+                f"abort_task called on task {task.id} not in progress")
             return
 
         try:
@@ -112,7 +113,7 @@ class Provider:
             task.set_status(TaskStatusPayload(task_status=TaskStatus.ABORTED))
             await self._network_connection.abort_task(task)
         except (ConnectionClosed, WebSocketDisconnect):
-            logger.warn(
+            logger.warning(
                 "got ConnectionClosed exception on abort_task in provider {id}".format(id=self._id))
             await self.on_closed()
         except Exception as e:
@@ -139,7 +140,7 @@ class Provider:
 
     async def on_closed(self):
         if self._on_closed_callback is None:
-            logger.warn(
+            logger.warning(
                 "On updated callback not set in provider {id}".format(
                     id=self._id)
             )
@@ -148,7 +149,7 @@ class Provider:
 
     async def on_connection_lost(self):
         if self._on_connection_lost_callback is None:
-            logger.warn(
+            logger.warning(
                 "On connection lost callback not set in provider {id}".format(
                     id=self._id)
             )
