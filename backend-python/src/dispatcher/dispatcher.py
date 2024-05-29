@@ -22,12 +22,13 @@ class Dispatcher:
         for _ in range(MAX_SCHEDULING_ATTEMPTS):
             if await self._schedule_task(task):
                 return
-        logger.warn("Task {id} failed to be scheduled".format(id=task.id))
+        logger.warning("Task {id} failed to be scheduled".format(id=task.id))
         task.set_status(TaskStatusPayload(task_status=TaskStatus.FAILED))
 
     def add_provider(self, provider: Provider) -> None:
         if provider.id in self._providers.keys():
-            logger.warn("Provider {id} already added".format(id=provider.id))
+            logger.warning(
+                "Provider {id} already added".format(id=provider.id))
             return
         self._providers[provider.id] = provider
 
@@ -49,7 +50,7 @@ class Dispatcher:
 
     async def reschedule_tasks_in_progress(self, provider_id: str) -> None:
         if provider_id not in self._providers.keys():
-            logger.warn(
+            logger.warning(
                 "Provider {id} not in dispatcher".format(id=provider_id))
             return
 

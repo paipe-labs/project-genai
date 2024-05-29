@@ -326,7 +326,7 @@ async def websocket_connection(ws: WebSocket):
             previous_ws = find_key_by_value(registered_providers, node_id)
             if previous_ws is not None and previous_ws != ws:
                 registered_providers.pop(previous_ws)
-                logger.warn(
+                logger.warning(
                     f"Disconnected provider connection found saved in registered")
 
             registered_providers[ws] = node_id
@@ -344,7 +344,7 @@ async def websocket_connection(ws: WebSocket):
             task_id = data_json.get("taskId")
             id_ = registered_providers.get(ws)
             if id_ is None:
-                logger.warn(f"Not registered provider sent result: {ws}")
+                logger.warning(f"Not registered provider sent result: {ws}")
                 break
 
             provider = dispatcher.providers.get(id_)
@@ -366,7 +366,7 @@ async def websocket_connection(ws: WebSocket):
                 task_ready[task_id].set()
 
         else:
-            logger.warn(f"Unknown message type: {msg_type}")
+            logger.warning(f"Unknown message type: {msg_type}")
 
 
 if __name__ == "__main__":
